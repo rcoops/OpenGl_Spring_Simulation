@@ -53,15 +53,43 @@ void nodeDisplay(raaNode *pNode); // callled by the display function to draw nod
 void arcDisplay(raaArc *pArc); // called by the display function to draw arcs
 void buildGrid(); // 
 
-
 void nodeDisplay(raaNode *pNode) // function to render a node (called from display())
 {
-	// put your node rendering (ogl) code here
+	glPushMatrix();
+	switch (pNode->m_uiWorldSystem)
+	{
+	case 1:
+		glColor3f(1.0f, 0.0f, 0.0f);
+		break;
+	case 2:
+		glColor3f(0.0f, 1.0f, 0.0f);
+		break;
+	case 3:
+		glColor3f(0.0f, 0.0f, 1.0f);
+		break;
+	case 4:
+		glColor3f(0.0f, 0.0f, 0.0f);
+		break;
+	default:
+		glColor3f(1.0f, 1.0f, 1.0f);
+		break;
+	}
+	//glColor3f(0.0f, 1.0f, 0.0f);
+	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
+	glutSolidSphere(powf(pNode->m_fMass, 0.333f), 10, 10);
+	glPopMatrix();
 }
 
 void arcDisplay(raaArc *pArc) // function to render an arc (called from display())
 {
-	// put your arc rendering (ogl) code here
+	glPushMatrix();
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glVertex3fv(pArc->m_pNode0->m_afPosition);
+
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glVertex3fv(pArc->m_pNode1->m_afPosition);
+
+	glPopMatrix();
 }
 
 // draw the scene. Called once per frame and should only deal with scene drawing (not updating the simulator)
@@ -77,18 +105,17 @@ void display()
 
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
 	visitNodes(&g_System, nodeDisplay); // loop through all of the nodes and draw them with the nodeDisplay function
-	visitArcs(&g_System, arcDisplay); // loop through all of the arcs and draw them with the arcDisplay function
 	glPopAttrib();
-
+	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attrib marker
+	glDisable(GL_LIGHTING); // switch of lighting to render lines
+	glBegin(GL_LINES);
+	visitArcs(&g_System, arcDisplay); // loop through all of the arcs and draw them with the arcDisplay function
+	glEnd();
+	glPopAttrib();
 
 	// draw a simple sphere
 	float afCol[] = { 0.3f, 1.0f, 0.5f, 1.0f };
 	utilitiesColourToMat(afCol, 2.0f);
-
-	glPushMatrix();
-	glTranslatef(0.0f, 30.0f, 0.0f);
-	glutSolidSphere(5.0f, 10, 10);
-	glPopMatrix();
 
 	glFlush(); // ensure all the ogl instructions have been processed
 	glutSwapBuffers(); // present the rendered scene to the screen

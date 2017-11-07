@@ -5,6 +5,7 @@
 #include "raaMaths/raaVector.h"
 #include "raaUtilities.h"
 
+// Convert colour
 void utilitiesColourToMat(const float* pafCol, float fShininess, bool bEmisive)
 {
 	if (pafCol)
