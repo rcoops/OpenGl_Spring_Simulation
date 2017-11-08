@@ -53,31 +53,44 @@ void nodeDisplay(raaNode *pNode); // callled by the display function to draw nod
 void arcDisplay(raaArc *pArc); // called by the display function to draw arcs
 void buildGrid(); // 
 
+void setColourDependentOnContinent(raaNode *pNode);
+void drawShapeDependentOnWorldOrder(raaNode *pNode);
+
 void nodeDisplay(raaNode *pNode) // function to render a node (called from display())
 {
 	glPushMatrix();
-	switch (pNode->m_uiWorldSystem)
+
+	setColourDependentOnContinent(pNode);
+	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
+	drawShapeDependentOnWorldOrder(pNode);
+	
+	glPopMatrix();
+}
+
+void setColourDependentOnContinent(raaNode *pNode)
+{
+	const float *cs_pafColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
+	utilitiesColourToMat(cs_pafColour, 2.0f);
+}
+
+void drawShapeDependentOnWorldOrder(raaNode *pNode)
+{
+	float fConeDimensions = 0;
+	switch(pNode->m_uiWorldSystem)
 	{
 	case 1:
-		glColor3f(1.0f, 0.0f, 0.0f);
+		glutSolidSphere(mathsRadiusOfSphereFromVolume(pNode->m_fMass), 10, 10);
 		break;
 	case 2:
-		glColor3f(0.0f, 1.0f, 0.0f);
+		glutSolidCube(mathsDimensionOfCubeFromVolume(pNode->m_fMass));
 		break;
 	case 3:
-		glColor3f(0.0f, 0.0f, 1.0f);
+		fConeDimensions = mathsRadiusOfConeFromVolume(pNode->m_fMass);
+		glRotatef(270.0f, 1.0f, 0.0f, 0.0f);
+		glutSolidCone(fConeDimensions, fConeDimensions * 2, 10, 10);
 		break;
-	case 4:
-		glColor3f(0.0f, 0.0f, 0.0f);
-		break;
-	default:
-		glColor3f(1.0f, 1.0f, 1.0f);
-		break;
+	default: /* If it doesn't have a world system allocation, it's not a country... */;
 	}
-	//glColor3f(0.0f, 1.0f, 0.0f);
-	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
-	glutSolidSphere(powf(pNode->m_fMass, 0.333f), 10, 10);
-	glPopMatrix();
 }
 
 void arcDisplay(raaArc *pArc) // function to render an arc (called from display())
@@ -112,10 +125,6 @@ void display()
 	visitArcs(&g_System, arcDisplay); // loop through all of the arcs and draw them with the arcDisplay function
 	glEnd();
 	glPopAttrib();
-
-	// draw a simple sphere
-	float afCol[] = { 0.3f, 1.0f, 0.5f, 1.0f };
-	utilitiesColourToMat(afCol, 2.0f);
 
 	glFlush(); // ensure all the ogl instructions have been processed
 	glutSwapBuffers(); // present the rendered scene to the screen

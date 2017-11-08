@@ -12,6 +12,7 @@ const static unsigned int csg_uiDefaultStringLength = 128;
 const static float csg_fNearClip = 0.1f;
 const static float csg_fFarClip = 10000.0f;
 const static int csg_uiWindowDefinition[] = { 0,0,512,384 };
+
 // materials
 const static bool csg_bMaterialEmissiveOn = true;
 const static bool csg_bMaterialEmissiveOff = false;
@@ -23,12 +24,22 @@ const static float csg_afColourTransBrightRed[] = { 1.0f, 0.2f, 0.2f, 0.6f };
 
 const static float csg_afColourClear[] = { 0.6f, 0.7f, 0.8f, 0.7f }; // screen background colour
 
+// continent colours
+const static float csg_afMaterialAfricaColour[] =		{ 1.0f, 0.0f, 0.0f, 1.0f };
+const static float csg_afMaterialAsiaColour[] =			{ 0.0f, 1.0f, 0.0f, 1.0f };
+const static float csg_afMaterialEuropeColour[] =		{ 0.0f, 0.0f, 1.0f, 1.0f };
+const static float csg_afMaterialNorthAmericaColour[] = { 1.0f, 0.0f, 1.0f, 1.0f };
+const static float csg_afMaterialOceanaColour[] =		{ 1.0f, 1.0f, 0.0f, 1.0f };
+const static float csg_afMaterialSouthAmericaColour[] = { 0.0f, 1.0f, 1.0f, 1.0f };
+
 //control
 const static unsigned int csg_uiControlDrawGrid = 0;
 const static unsigned int csg_uiControlNumFlags = 1;
 
 // parser
 std::string constantContinentIndexToName(int i);
+
+const float *constantContinentIndexToMaterialColour(int i);
 
 const static unsigned int csg_uiParseNetwork = 1;
 const static unsigned int csg_uiParseArcs = 2;

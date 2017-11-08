@@ -13,3 +13,24 @@ std::string constantContinentIndexToName(int i)
 		default: return "Unknown";
 	}
 }
+
+const float *constantContinentIndexToMaterialColour(int i)
+{
+	const float *paContinentMaterial = csg_afMaterialNeturalColour;
+	switch (i)
+	{
+	case 1: paContinentMaterial = csg_afMaterialAfricaColour;
+		break;
+	case 2: paContinentMaterial = csg_afMaterialAsiaColour;
+		break;
+	case 3: paContinentMaterial = csg_afMaterialEuropeColour;
+		break;
+	case 4: paContinentMaterial = csg_afMaterialNorthAmericaColour;
+		break;
+	case 5: paContinentMaterial = csg_afMaterialOceanaColour;
+		break;
+	case 6: paContinentMaterial = csg_afMaterialSouthAmericaColour;
+		break;
+	}
+	return paContinentMaterial;
+}
