@@ -352,17 +352,20 @@ void resetNodeForce(raaNode *pNode)
 
 void calculateSpringForce(raaArc *pArc)
 {
+	raaNode *pNode0 = pArc->m_pNode0;
+	raaNode *pNode1 = pArc->m_pNode1;
 	float vArcDistance[4], vArcDirection[4];
 
 	vecInitDVec(vArcDistance);
 	vecInitDVec(vArcDirection);
 
 	// Calc force
-	float fArcLength = vecDistance(pArc->m_pNode0->m_afPosition, pArc->m_pNode1->m_afPosition);
-	float extension = (fArcLength - pArc->m_fIdealLen) / pArc->m_fIdealLen;
+	float fArcDistance = vecDistance(pNode0->m_afPosition, pNode1->m_afPosition);
+	float extension = (fArcDistance - pArc->m_fIdealLen) / pArc->m_fIdealLen;
 	float fForce = extension * pArc->m_fSpringCoef;
 
-	vecSub(pArc->m_pNode0->m_afPosition, pArc->m_pNode1->m_afPosition, vArcDistance);
+	vecSub(pNode0->m_afPosition, pArc->m_pNode1->m_afPosition, vArcDistance);
 	vecNormalise(vArcDistance, vArcDirection);
 	
+	vecProject(pArc->m_pNode0->m_afPosition, vArcDirection, fForce, pArc)
 }
