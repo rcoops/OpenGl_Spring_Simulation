@@ -53,21 +53,24 @@ void nodeDisplay(raaNode *pNode); // callled by the display function to draw nod
 void arcDisplay(raaArc *pArc); // called by the display function to draw arcs
 void buildGrid(); // 
 
-void setColourDependentOnContinent(raaNode *pNode);
+void setMaterialColourByContinent(raaNode *pNode);
 void drawShapeDependentOnWorldOrder(raaNode *pNode);
+
+void resetNodeForce(raaNode *pNode);
+void calculateSpringForce(raaArc *pArc);
 
 void nodeDisplay(raaNode *pNode) // function to render a node (called from display())
 {
 	glPushMatrix();
 
-	setColourDependentOnContinent(pNode);
+	setMaterialColourByContinent(pNode);
 	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
 	drawShapeDependentOnWorldOrder(pNode);
 	
 	glPopMatrix();
 }
 
-void setColourDependentOnContinent(raaNode *pNode)
+void setMaterialColourByContinent(raaNode *pNode)
 {
 	const float *cs_pafColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
 	utilitiesColourToMat(cs_pafColour, 2.0f);
@@ -133,6 +136,8 @@ void display()
 // processing of system and camera data outside of the renderng loop
 void idle() 
 {
+	visitNodes(&g_System, resetNodeForce);
+
 	controlChangeResetAll(g_Control); // re-set the update status for all of the control flags
 	camProcessInput(g_Input, g_Camera); // update the camera pos/ori based on changes since last render
 	camResetViewportChanged(g_Camera); // re-set the camera's viwport changed flag after all events have been processed
@@ -338,4 +343,26 @@ void buildGrid()
 	glPopAttrib(); // pop attrib marker (undo switching off lighting)
 
 	glEndList(); // finish recording the displaylist
+}
+
+void resetNodeForce(raaNode *pNode)
+{
+	vecInitDVec(pNode->m_afForce);
+}
+
+void calculateSpringForce(raaArc *pArc)
+{
+	float vArcDistance[4], vArcDirection[4];
+
+	vecInitDVec(vArcDistance);
+	vecInitDVec(vArcDirection);
+
+	// Calc force
+	float fArcLength = vecDistance(pArc->m_pNode0->m_afPosition, pArc->m_pNode1->m_afPosition);
+	float extension = (fArcLength - pArc->m_fIdealLen) / pArc->m_fIdealLen;
+	float fForce = extension * pArc->m_fSpringCoef;
+
+	vecSub(pArc->m_pNode0->m_afPosition, pArc->m_pNode1->m_afPosition, vArcDistance);
+	vecNormalise(vArcDistance, vArcDirection);
+	
 }

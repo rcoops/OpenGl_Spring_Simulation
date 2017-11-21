@@ -6,6 +6,7 @@
 #include <raaMaths/raaMatrix.h>
 #include <raaMaths/raaMaths.h>
 #include "raaCamera.h"
+#include "raaComputerGraphicsAssignment1\raaConstants.h"
 #include <iostream>
 
 
@@ -317,8 +318,8 @@ void camInputInit( raaCameraInput &rInput )
 	rInput.m_tbKeyTravel=tri_null;
 	rInput.m_tbKeyPanHori=tri_null;
 	rInput.m_tbKeyPanVert=tri_null;
-	rInput.m_fAngularSensitivity=0.0000002f;
-	rInput.m_fLinearSensitivity=0.1f;
+	rInput.m_fAngularSensitivity= csg_fCamAngleSensitivity;
+	rInput.m_fLinearSensitivity=csg_fCamLinearSensitivity;
 }
 
 void camInputExplore( raaCameraInput &rInput, bool bState )
