@@ -280,7 +280,7 @@ bool renderProject(float fX, float fY, float fZ, float* pfMV, float* pfPV, int* 
 	pfOutput[2] = (1.0f + afTemp[6])*0.5f;
 	return true;
 }
-
+// camObjMat(g_camera) pfMV
 bool renderUnProject(float fX, float fY, float fZ, float* pfMV, float* pfPV, int* piViewport, float* pfOutput) 
 {
 	float m[16], A[16];

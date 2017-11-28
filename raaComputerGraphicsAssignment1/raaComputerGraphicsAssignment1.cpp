@@ -55,7 +55,7 @@ void buildGrid(); //
 
 void setMaterialColourByContinent(raaNode *pNode);
 void drawShapeDependentOnWorldOrder(raaNode *pNode);
-
+void calculateNodeMotion(raaNode *pNode);
 void resetNodeForce(raaNode *pNode);
 void calculateSpringForce(raaArc *pArc);
 
@@ -67,6 +67,20 @@ void nodeDisplay(raaNode *pNode) // function to render a node (called from displ
 	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
 	drawShapeDependentOnWorldOrder(pNode);
 	
+	glPopMatrix();
+}
+
+void nodeTextDisplay(raaNode *pNode) // function to render a node (called from display())
+{
+	glPushMatrix();
+	glLoadIdentity();
+	float yOffSet = pNode->m_afPosition[1] + mathsRadiusOfSphereFromVolume(pNode->m_fMass);
+	char *pNodeName = pNode->m_acName;
+	const float *cs_afColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
+	glColor3fv(cs_afColour);
+	glTranslatef(pNode->m_afPosition[0], yOffSet, pNode->m_afPosition[2]);
+	outlinePrint(pNodeName, true);
+
 	glPopMatrix();
 }
 
@@ -122,6 +136,10 @@ void display()
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
 	visitNodes(&g_System, nodeDisplay); // loop through all of the nodes and draw them with the nodeDisplay function
 	glPopAttrib();
+	//glDisable(GL_LIGHTING); // switch of lighting to render lines
+	//glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
+	//visitNodes(&g_System, nodeTextDisplay);
+	//glPopAttrib();
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attrib marker
 	glDisable(GL_LIGHTING); // switch of lighting to render lines
 	glBegin(GL_LINES);
@@ -137,16 +155,35 @@ void display()
 void idle() 
 {
 	visitNodes(&g_System, resetNodeForce);
-
+	visitArcs(&g_System, calculateSpringForce);
+	visitNodes(&g_System, calculateNodeMotion);
 	controlChangeResetAll(g_Control); // re-set the update status for all of the control flags
 	camProcessInput(g_Input, g_Camera); // update the camera pos/ori based on changes since last render
 	camResetViewportChanged(g_Camera); // re-set the camera's viwport changed flag after all events have been processed
 	glutPostRedisplay();// ask glut to update the screen
 }
 
+void calculateNodeMotion(raaNode *pNode)
+{
+	float *vfAcceleration, *vfDisplacement;
+	vecInitDVec(vfAcceleration);
+	vecInitDVec(vfDisplacement);
+	vecScalarProduct(pNode->m_afForce, 1 / pNode->m_fMass, vfAcceleration);
+
+	float time = 1.0f / 60.0f;
+
+	vecScalarProduct(pNode->m_afVelocity, time, vfDisplacement);
+
+	vecScalarProduct(vfAcceleration, time * time / 2, vfAcceleration);
+
+	vecAdd(vfDisplacement, vfAcceleration, vfDisplacement);
+	vecAdd(pNode->m_afPosition, vfDisplacement, pNode->m_afPosition);
+}
+
 // respond to a change in window position or shape
 void reshape(int iWidth, int iHeight)  
 {
+	/* want to know what proportion of the screen (iWidth iHeight) our mouse exists in */
 	glViewport(0, 0, iWidth, iHeight);  // re-size the rendering context to match window
 	camSetViewport(g_Camera, 0, 0, iWidth, iHeight); // inform the camera of the new rendering context size
 	glMatrixMode(GL_PROJECTION); // switch to the projection matrix stack 
@@ -354,18 +391,73 @@ void calculateSpringForce(raaArc *pArc)
 {
 	raaNode *pNode0 = pArc->m_pNode0;
 	raaNode *pNode1 = pArc->m_pNode1;
-	float vArcDistance[4], vArcDirection[4];
 
+	float vArcDistance[4], vArcDirection[4];
 	vecInitDVec(vArcDistance);
 	vecInitDVec(vArcDirection);
 
-	// Calc force
-	float fArcDistance = vecDistance(pNode0->m_afPosition, pNode1->m_afPosition);
+	// Get distance vector
+	vecSub(pNode0->m_afPosition, pArc->m_pNode1->m_afPosition, vArcDistance);
+	// Work out scalar distance and direction vector
+	float fArcDistance = vecNormalise(vArcDistance, vArcDirection);
+
 	float extension = (fArcDistance - pArc->m_fIdealLen) / pArc->m_fIdealLen;
 	float fForce = extension * pArc->m_fSpringCoef;
 
-	vecSub(pNode0->m_afPosition, pArc->m_pNode1->m_afPosition, vArcDistance);
-	vecNormalise(vArcDistance, vArcDirection);
-	
-	vecProject(pArc->m_pNode0->m_afPosition, vArcDirection, fForce, pArc)
+	vecScalarProduct(vArcDirection, fForce, pNode0->m_afForce);
+	vecScalarProduct(vArcDirection, -fForce, pNode1->m_afForce);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+	To move mouse pointer in screen to local clip space co-ordinate, need to reverse calculations
+	for drawing a vertex on the screen (up until world co-ordinates)
+	GLUT_RGBA (255,255,255)
+	need to draw filled polygons
+	selection buffer start at 3000 and measure how many are being collected then adjust down
+	mouse selection 3x3 or 5x5
+	still want to strip out everything but polygons on approach 2
+	biggest hassle is processing the hit record
+	opengl 2 specification tutorials for selection buffer
+	glSelectBuffer, glRenderMode GL_SELECT, getNames into selection buffer
+	push name 0
+	model & projection matrix need to be the same settings as for the screen render
+	glMM, glPM, glLI
+	gluPickMatrix - camViewPort(g_gCamera window height) MINUS y co-ordinate
+	viewport width & height is passed to camera
+	glMultMatrixf multiply MMatrix by Projection matrox
+
+	need to reset both projection and modelview matrixes after selection
+
+	use separate visitNodes function for rendering and selection of nodes
+	'unproject' screen co-ordinates into 3d world
+	calculate offset vector from hit point and sphere centre
+	renderUnProject & renderProject (screen->3d space & 3d space->screen)
+	offset and selectionZ are stored as globals
+	add offset and mouse pointer position and put it in the node position
+	pick matrix & projection matrix need to be right way round
+	glutGetModifiers()&GLUT_ACTIVE_SHIFT
+	good idea to record node is selected in node itself
+*/
