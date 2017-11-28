@@ -14,7 +14,7 @@ const static float csg_fFarClip = 10000.0f;
 const static int csg_uiWindowDefinition[] = { 0,0,512,384 };
 const static float csg_fCamAngleSensitivity = 0.001f;
 const static float csg_fCamLinearSensitivity = 0.2f;
-const static float csg_fTimeUnit = 0.56667f;
+const static float csg_fTimeUnit = 0.016667f;
 
 // materials
 const static bool csg_bMaterialEmissiveOn = true;

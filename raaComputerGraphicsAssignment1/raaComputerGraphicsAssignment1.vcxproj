@@ -161,11 +161,13 @@
     <ClCompile Include="raaConstants.cpp" />
     <ClCompile Include="raaControl.cpp" />
     <ClCompile Include="raaParse.cpp" />
+    <ClCompile Include="raaSpringCalc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="raaConstants.h" />
     <ClInclude Include="raaControl.h" />
     <ClInclude Include="raaParse.h" />
+    <ClInclude Include="raaSpringCalc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

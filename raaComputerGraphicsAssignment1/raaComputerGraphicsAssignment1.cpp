@@ -63,7 +63,7 @@ void calculateNodeMotion(raaNode *pNode);
 void resetNodeForce(raaNode *pNode);
 void calculateSpringForce(raaArc *pArc);
 
-void calculateAveragePosition(raaSystem* pSystem)
+void calculateAveragePosition(raaSystem *pSystem)
 {
 	int iNoOfNodes = 0;
 	float afTotalPositions[4];
@@ -84,8 +84,8 @@ void calculateAveragePosition(raaSystem* pSystem)
 
 void randomisePositions(raaNode *pNode)
 {
-	vecScalarProduct(pNode->m_afPosition, 3, pNode->m_afPosition);
-	//vecRand(g_fMinPos, g_fMaxPos, pNode->m_afPosition);
+	//vecScalarProduct(pNode->m_afPosition, 3, pNode->m_afPosition);
+	vecRand(g_fMinPos, g_fMaxPos, pNode->m_afPosition);
 }
 
 void calcMinMax(raaNode *pNode)
@@ -202,22 +202,6 @@ void idle()
 	glutPostRedisplay();// ask glut to update the screen
 }
 
-void calculateNodeMotion(raaNode *pNode)
-{
-	float vfAcceleration[4], vfDisplacement[4];
-	vecInitDVec(vfAcceleration);
-	vecInitDVec(vfDisplacement);
-	vecScalarProduct(pNode->m_afForce, 1 / pNode->m_fMass, vfAcceleration);
-
-	vecScalarProduct(pNode->m_afVelocity, csg_fTimeUnit, vfDisplacement);
-
-	vecScalarProduct(vfAcceleration, csg_fTimeUnit * csg_fTimeUnit / 2, vfAcceleration);
-
-	vecAdd(vfDisplacement, vfAcceleration, vfDisplacement);
-//	vecScalarProduct(pNode->m_afVelocity, 0.95, pNode->m_afVelocity);
-	vecAdd(pNode->m_afPosition, vfDisplacement, pNode->m_afPosition);
-}
-
 // respond to a change in window position or shape
 void reshape(int iWidth, int iHeight)  
 {
@@ -321,11 +305,6 @@ void myInit()
 	// initalise the maths library
 	initMaths();
 
-	// Camera setup
-	camInit(g_Camera); // initalise the camera model
-	camInputInit(g_Input); // initialise the persistant camera input data 
-	camInputExplore(g_Input, true); // define the camera navigation mode
-
 	// opengl setup - this is a basic default for all rendering in the render loop
 	glClearColor(csg_afColourClear[0], csg_afColourClear[1], csg_afColourClear[2], csg_afColourClear[3]); // set the window background colour
 	glEnable(GL_DEPTH_TEST); // enables occusion of rendered primatives in the window
@@ -345,7 +324,13 @@ void myInit()
 	parse(g_acFile, parseSection, parseNetwork, parseArc, parsePartition, parseVector);
 	vecInitPVec(g_afAvPos);
 	visitNodes(&g_System, calcMinMax);
+	calculateAveragePosition(&g_System);
 	visitNodes(&g_System, randomisePositions);
+
+	// Camera setup
+	camInit(g_Camera); // initalise the camera model
+	camInputInit(g_Input); // initialise the persistant camera input data 
+	camInputExplore(g_Input, true); // define the camera navigation mode
 }
 
 int main(int argc, char* argv[])
@@ -427,20 +412,7 @@ void resetNodeForce(raaNode *pNode)
 	vecInitDVec(pNode->m_afForce);
 }
 
-void calculateSpringForce(raaArc *pArc)
-{
-	float afArcDistance[4], afArcDirection[4];
-	vecInitDVec(afArcDistance);
-	vecInitDVec(afArcDirection);
 
-	vecSub(pArc->m_pNode0->m_afPosition, pArc->m_pNode1->m_afPosition, afArcDistance); // Calc arc length vector
-	float fArcDistance = vecNormalise(afArcDistance, afArcDirection); // Calc scalar distance and direction vector
-	float fExtension = (fArcDistance - pArc->m_fIdealLen) / pArc->m_fIdealLen; // Calc spring extension
-	float fForce = fExtension * pArc->m_fSpringCoef; // Calc spring force
-
-	vecScalarProduct(afArcDirection, -fForce, pArc->m_pNode0->m_afForce);
-	vecScalarProduct(afArcDirection, fForce, pArc->m_pNode1->m_afForce);
-}
 
 
 

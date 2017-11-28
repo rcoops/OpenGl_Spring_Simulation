@@ -27,6 +27,9 @@
     <ClCompile Include="raaConstants.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="raaSpringCalc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="raaControl.h">
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="raaParse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="raaSpringCalc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
