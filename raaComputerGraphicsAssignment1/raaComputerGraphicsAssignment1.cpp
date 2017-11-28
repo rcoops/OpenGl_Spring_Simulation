@@ -23,7 +23,10 @@
 // You will need to expand the definitions for raaNode and raaArc in the raaSystem library to include additional attributes for the siumulation process
 // If you wish to implement the mouse selection part of the assignment you may find the camProject and camUnProject functions usefull
 
-
+float g_fMinPos = FLT_MAX;
+float g_fMaxPos = 0;
+float g_afAvPos[4];
+int g_uiNumberOfNodes = 0;
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
 raaCamera g_Camera; // structure holding the camera position and orientation attributes
@@ -51,6 +54,7 @@ void motion(int iXPos, int iYPos); // called for each mouse motion event
 void myInit(); // the myinit function runs once, before rendering starts and should be used for setup
 void nodeDisplay(raaNode *pNode); // callled by the display function to draw nodes
 void arcDisplay(raaArc *pArc); // called by the display function to draw arcs
+void randomisePositions(raaNode *pNode);
 void buildGrid(); // 
 
 void setMaterialColourByContinent(raaNode *pNode);
@@ -58,6 +62,42 @@ void drawShapeDependentOnWorldOrder(raaNode *pNode);
 void calculateNodeMotion(raaNode *pNode);
 void resetNodeForce(raaNode *pNode);
 void calculateSpringForce(raaArc *pArc);
+
+void calculateAveragePosition(raaSystem* pSystem)
+{
+	int iNoOfNodes = 0;
+	float afTotalPositions[4];
+	vecInitPVec(afTotalPositions);
+	if (pSystem)
+	{
+		for (raaLinkedListElement *pE = pSystem->m_llNodes.m_pHead; pE; pE = pE->m_pNext)
+		{
+			if (pE->m_uiType == csg_uiNode && pE->m_pData)
+			{
+				vecAdd(afTotalPositions, ((raaNode*)pE)->m_afPosition, afTotalPositions);
+			}
+			iNoOfNodes++;
+		}
+	}
+	vecScalarProduct(afTotalPositions, 1.0f / (float) iNoOfNodes, g_afAvPos);
+}
+
+void randomisePositions(raaNode *pNode)
+{
+	vecScalarProduct(pNode->m_afPosition, 3, pNode->m_afPosition);
+	//vecRand(g_fMinPos, g_fMaxPos, pNode->m_afPosition);
+}
+
+void calcMinMax(raaNode *pNode)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		g_fMinPos = (g_fMinPos > pNode->m_afPosition[i]) ? pNode->m_afPosition[i] : g_fMinPos;
+		g_fMaxPos = (g_fMaxPos < pNode->m_afPosition[i]) ? pNode->m_afPosition[i] : g_fMaxPos;
+	}
+	//	vecRand(g_afMinPos, g_afMaxPos, pNode->m_afPosition);
+	printf("Position %f, %f, %f\n", pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
+}
 
 void nodeDisplay(raaNode *pNode) // function to render a node (called from display())
 {
@@ -132,7 +172,6 @@ void display()
 
 	// draw the grid if the control flag for it is true	
 	if (controlActive(g_Control, csg_uiControlDrawGrid)) glCallList(gs_uiGridDisplayList);
-
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
 	visitNodes(&g_System, nodeDisplay); // loop through all of the nodes and draw them with the nodeDisplay function
 	glPopAttrib();
@@ -165,18 +204,17 @@ void idle()
 
 void calculateNodeMotion(raaNode *pNode)
 {
-	float *vfAcceleration, *vfDisplacement;
+	float vfAcceleration[4], vfDisplacement[4];
 	vecInitDVec(vfAcceleration);
 	vecInitDVec(vfDisplacement);
 	vecScalarProduct(pNode->m_afForce, 1 / pNode->m_fMass, vfAcceleration);
 
-	float time = 1.0f / 60.0f;
+	vecScalarProduct(pNode->m_afVelocity, csg_fTimeUnit, vfDisplacement);
 
-	vecScalarProduct(pNode->m_afVelocity, time, vfDisplacement);
-
-	vecScalarProduct(vfAcceleration, time * time / 2, vfAcceleration);
+	vecScalarProduct(vfAcceleration, csg_fTimeUnit * csg_fTimeUnit / 2, vfAcceleration);
 
 	vecAdd(vfDisplacement, vfAcceleration, vfDisplacement);
+//	vecScalarProduct(pNode->m_afVelocity, 0.95, pNode->m_afVelocity);
 	vecAdd(pNode->m_afPosition, vfDisplacement, pNode->m_afPosition);
 }
 
@@ -305,6 +343,9 @@ void myInit()
 	// initialise the data system and load the data file
 	initSystem(&g_System);
 	parse(g_acFile, parseSection, parseNetwork, parseArc, parsePartition, parseVector);
+	vecInitPVec(g_afAvPos);
+	visitNodes(&g_System, calcMinMax);
+	visitNodes(&g_System, randomisePositions);
 }
 
 int main(int argc, char* argv[])
@@ -325,7 +366,6 @@ int main(int argc, char* argv[])
 		glutCreateWindow("raaAssignment1-2017");  // create rendering window and give it a name
 
 		buildFont(); // setup text rendering (use outline print function to render 3D text
-
 
 		myInit(); // application specific initialisation
 
@@ -389,23 +429,17 @@ void resetNodeForce(raaNode *pNode)
 
 void calculateSpringForce(raaArc *pArc)
 {
-	raaNode *pNode0 = pArc->m_pNode0;
-	raaNode *pNode1 = pArc->m_pNode1;
+	float afArcDistance[4], afArcDirection[4];
+	vecInitDVec(afArcDistance);
+	vecInitDVec(afArcDirection);
 
-	float vArcDistance[4], vArcDirection[4];
-	vecInitDVec(vArcDistance);
-	vecInitDVec(vArcDirection);
+	vecSub(pArc->m_pNode0->m_afPosition, pArc->m_pNode1->m_afPosition, afArcDistance); // Calc arc length vector
+	float fArcDistance = vecNormalise(afArcDistance, afArcDirection); // Calc scalar distance and direction vector
+	float fExtension = (fArcDistance - pArc->m_fIdealLen) / pArc->m_fIdealLen; // Calc spring extension
+	float fForce = fExtension * pArc->m_fSpringCoef; // Calc spring force
 
-	// Get distance vector
-	vecSub(pNode0->m_afPosition, pArc->m_pNode1->m_afPosition, vArcDistance);
-	// Work out scalar distance and direction vector
-	float fArcDistance = vecNormalise(vArcDistance, vArcDirection);
-
-	float extension = (fArcDistance - pArc->m_fIdealLen) / pArc->m_fIdealLen;
-	float fForce = extension * pArc->m_fSpringCoef;
-
-	vecScalarProduct(vArcDirection, fForce, pNode0->m_afForce);
-	vecScalarProduct(vArcDirection, -fForce, pNode1->m_afForce);
+	vecScalarProduct(afArcDirection, -fForce, pArc->m_pNode0->m_afForce);
+	vecScalarProduct(afArcDirection, fForce, pArc->m_pNode1->m_afForce);
 }
 
 
