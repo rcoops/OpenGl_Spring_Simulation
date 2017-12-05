@@ -12,9 +12,10 @@ const static unsigned int csg_uiDefaultStringLength = 128;
 const static float csg_fNearClip = 0.1f;
 const static float csg_fFarClip = 10000.0f;
 const static int csg_uiWindowDefinition[] = { 0,0,512,384 };
-const static float csg_fCamAngleSensitivity = 0.001f;
+const static float csg_fCamAngleSensitivity = 0.0005f;
 const static float csg_fCamLinearSensitivity = 0.2f;
-const static float csg_fTimeUnit = 0.016667f;
+const static float csg_fTimeUnit = 0.016667f; // 1 / 60
+const static float csg_fDampeningCoefficient = 0.98f;
 
 // materials
 const static bool csg_bMaterialEmissiveOn = true;

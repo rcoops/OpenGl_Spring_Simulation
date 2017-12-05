@@ -17,13 +17,13 @@ raaNode* initNode(raaNode* pNode, unsigned int uiId, float* pfPosition, float fM
 	if(pNode)
 	{
 		vecInitPVec(pNode->m_afPosition);
-		vecCopy(pfPosition, pNode->m_afPosition);
+		vecCopy(pfPosition, pNode->m_afPosition, 3);
 		pNode->m_fMass = fMass;
 		sprintf_s(pNode->m_acName, "%s", acName);
 		pNode->m_uiId = uiId;
 		pNode->m_uiContinent = 0;
 		pNode->m_uiWorldSystem = 0;
-		vecInitPVec(pNode->m_afVelocity);
+		vecInitPVec(pNode->m_vfVelocity);
 	}
 
 	return pNode;

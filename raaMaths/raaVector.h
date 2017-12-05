@@ -22,7 +22,7 @@ float vecDistance(float *pV1, float *pV2);
 float vecNormalise(float *pV0, float *pVRes);
 float* vecProject(float *pVStart, float *pVDir, float fLen, float *pVRes);
 float* vecSet(float fX, float fY, float fZ, float *pV);
-float* vecCopy(float *pIn, float *pOut);
+float* vecCopy(float *pIn, float *pOut, int length);
 float* vecSlerp(float *pVStart, float *pVEnd, float fSlerp, float *pV);
 float* vecRand(float fMin, float fMax, float *pV);
 float* vecDoubleToFloat(double *pIn, float *pOut);

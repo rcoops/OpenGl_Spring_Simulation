@@ -9,7 +9,6 @@
 #include "raaComputerGraphicsAssignment1\raaConstants.h"
 #include <iostream>
 
-
 void camInit( raaCamera &rCam )
 {
 	camReset(rCam);
@@ -22,11 +21,11 @@ void camReset( raaCamera &rCam )
 	vecInitDVec(rCam.m_fVR);
 	vecInitDVec(rCam.m_fVD);
 	vecInitDVec(rCam.m_fVU);
-	vecSet(0.0f, 0.0f, 200.0f, rCam.m_fVP);
-	vecSet(0.0f, 0.0f, -10.0f, rCam.m_fVD);
-	vecSet(1.0f, 0.0f, 0.0f, rCam.m_fVR);
+	vecSet(0.0f, 0.0f, 200.0f, rCam.m_fVP); // Position
+	vecSet(0.0f, 0.0f, -10.0f, rCam.m_fVD); // Direction
+	vecSet(1.0f, 0.0f, 0.0f, rCam.m_fVR); // Rotation
 	vecSet(0.0f, 1.0f, 0.0f, rCam.m_fVU);
-	vecSet(0.0f, 0.0f, 0.0f, rCam.m_fVT);
+	vecSet(0.0f, 0.0f, 0.0f, rCam.m_fVT); // Target
 	rCam.m_fNear=0.2f;
 	rCam.m_fFar=300000.0f;
 	rCam.m_bChanged = true;
@@ -37,11 +36,11 @@ void camReset( raaCamera &rCam )
 
 void camCopy(raaCamera &rIn, raaCamera &rOut)
 {
-	vecCopy(rIn.m_fVP, rOut.m_fVP);
-	vecCopy(rIn.m_fVT, rOut.m_fVT);
-	vecCopy(rIn.m_fVR, rOut.m_fVR);
-	vecCopy(rIn.m_fVU, rOut.m_fVU);
-	vecCopy(rIn.m_fVD, rOut.m_fVD);
+	vecCopy(rIn.m_fVP, rOut.m_fVP, 3);
+	vecCopy(rIn.m_fVT, rOut.m_fVT, 3);
+	vecCopy(rIn.m_fVR, rOut.m_fVR, 3);
+	vecCopy(rIn.m_fVU, rOut.m_fVU, 3);
+	vecCopy(rIn.m_fVD, rOut.m_fVD, 3);
 	rOut.m_fFar=rIn.m_fFar;
 	rOut.m_fNear=rIn.m_fNear;
 	rOut.m_bChanged = true;
@@ -170,7 +169,7 @@ void camExploreUpdateTarget( raaCamera &rCam, float *pfTarget )
 	if(pfTarget)
 	{
 		float fLen=vecDistance(rCam.m_fVP, rCam.m_fVT);
-		vecCopy(pfTarget, rCam.m_fVT);
+		vecCopy(pfTarget, rCam.m_fVT, 3);
 		vecProject(rCam.m_fVT, rCam.m_fVD, -fLen, rCam.m_fVP);
 		rCam.m_bRotInvChanged = rCam.m_bRotChanged = rCam.m_bInvChanged = rCam.m_bChanged = true;
 	}
@@ -180,7 +179,7 @@ void camExploreUpdateTargetAndDistance(raaCamera& rCam, float fDist, float* pfTa
 {
 	if (pfTarget)
 	{
-		vecCopy(pfTarget, rCam.m_fVT);
+		vecCopy(pfTarget, rCam.m_fVT, 3);
 		vecProject(rCam.m_fVT, rCam.m_fVD, -fDist, rCam.m_fVP);
 		rCam.m_bRotInvChanged = rCam.m_bRotChanged = rCam.m_bInvChanged = rCam.m_bChanged = true;
 	}
@@ -318,7 +317,7 @@ void camInputInit( raaCameraInput &rInput )
 	rInput.m_tbKeyTravel=tri_null;
 	rInput.m_tbKeyPanHori=tri_null;
 	rInput.m_tbKeyPanVert=tri_null;
-	rInput.m_fAngularSensitivity= csg_fCamAngleSensitivity;
+	rInput.m_fAngularSensitivity = csg_fCamAngleSensitivity;
 	rInput.m_fLinearSensitivity=csg_fCamLinearSensitivity;
 }
 

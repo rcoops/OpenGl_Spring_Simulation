@@ -16,6 +16,7 @@
 #include "raaConstants.h"
 #include "raaParse.h"
 #include "raaControl.h"
+#include "raaSpringCalc.h"
 
 // NOTES
 // look should look through the libraries and additional files I have provided to familarise yourselves with the functionallity and code.
@@ -23,8 +24,8 @@
 // You will need to expand the definitions for raaNode and raaArc in the raaSystem library to include additional attributes for the siumulation process
 // If you wish to implement the mouse selection part of the assignment you may find the camProject and camUnProject functions usefull
 
-float g_fMinPos = FLT_MAX;
-float g_fMaxPos = 0;
+float g_fMinPos = 1.0f;
+float g_fMaxPos = 770.0f;
 float g_afAvPos[4];
 int g_uiNumberOfNodes = 0;
 // core system global data
@@ -60,7 +61,6 @@ void buildGrid(); //
 void setMaterialColourByContinent(raaNode *pNode);
 void drawShapeDependentOnWorldOrder(raaNode *pNode);
 void calculateNodeMotion(raaNode *pNode);
-void resetNodeForce(raaNode *pNode);
 void calculateSpringForce(raaArc *pArc);
 
 bool g_bRun = false;
@@ -76,7 +76,8 @@ void calculateAveragePosition(raaSystem *pSystem)
 		{
 			if (pE->m_uiType == csg_uiNode && pE->m_pData)
 			{
-				vecAdd(afTotalPositions, ((raaNode*)pE)->m_afPosition, afTotalPositions);
+				raaNode *pNode = (raaNode*) pE->m_pData;
+				vecAdd(afTotalPositions, pNode->m_afPosition, afTotalPositions);
 				fNoOfNodes += 1.0f;
 			}
 		}
@@ -86,20 +87,18 @@ void calculateAveragePosition(raaSystem *pSystem)
 
 void randomisePositions(raaNode *pNode)
 {
-	vecScalarProduct(pNode->m_afPosition, 2, pNode->m_afPosition);
-	//vecRand(g_fMinPos, g_fMaxPos, pNode->m_afPosition);
+	//vecScalarProduct(pNode->m_afPosition, 2, pNode->m_afPosition);
+	vecRand(g_fMinPos, g_fMaxPos, pNode->m_afPosition);
 }
 
-void calcMinMax(raaNode *pNode)
-{
-	for (int i = 0; i < 3; i++)
-	{
-		g_fMinPos = (g_fMinPos > pNode->m_afPosition[i]) ? pNode->m_afPosition[i] : g_fMinPos;
-		g_fMaxPos = (g_fMaxPos < pNode->m_afPosition[i]) ? pNode->m_afPosition[i] : g_fMaxPos;
-	}
-	//	vecRand(g_afMinPos, g_afMaxPos, pNode->m_afPosition);
-	printf("Position %f, %f, %f\n", pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
-}
+//void calcMinMax(raaNode *pNode)
+//{
+//	for (int i = 0; i < 3; i++)
+//	{
+//		g_fMinPos = (g_fMinPos > pNode->m_afPosition[i]) ? pNode->m_afPosition[i] : g_fMinPos;
+//		g_fMaxPos = (g_fMaxPos < pNode->m_afPosition[i]) ? pNode->m_afPosition[i] : g_fMaxPos;
+//	}
+//}
 
 void nodeDisplay(raaNode *pNode) // function to render a node (called from display())
 {
@@ -190,18 +189,21 @@ void display()
 
 	glFlush(); // ensure all the ogl instructions have been processed
 	glutSwapBuffers(); // present the rendered scene to the screen
+	calcTime();
 }
 
 // processing of system and camera data outside of the renderng loop
 void idle() 
 {
-
 	if (g_bRun)
 	{
 		visitNodes(&g_System, resetNodeForce);
 		visitArcs(&g_System, calculateSpringForce);
 		visitNodes(&g_System, calculateNodeMotion);
+		calculateAveragePosition(&g_System);
+		camExploreUpdateTarget(g_Camera, g_afAvPos);
 	}
+
 	controlChangeResetAll(g_Control); // re-set the update status for all of the control flags
 	camProcessInput(g_Input, g_Camera); // update the camera pos/ori based on changes since last render
 	camResetViewportChanged(g_Camera); // re-set the camera's viwport changed flag after all events have been processed
@@ -241,6 +243,9 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 		break;
 	case 'r':
 		g_bRun = !g_bRun;
+		break;
+	case 't':
+		visitNodes(&g_System, randomisePositions);
 		break;
 	}
 }
@@ -332,20 +337,15 @@ void myInit()
 	initSystem(&g_System);
 	parse(g_acFile, parseSection, parseNetwork, parseArc, parsePartition, parseVector);
 	vecInitPVec(g_afAvPos);
-	visitNodes(&g_System, calcMinMax);
-//	visitNodes(&g_System, randomisePositions);
+//	visitNodes(&g_System, calcMinMax);
 	calculateAveragePosition(&g_System);
-
-
 
 	// Camera setup
 	camInit(g_Camera); // initalise the camera model
 	camInputInit(g_Input); // initialise the persistant camera input data 
 	camInputExplore(g_Input, true); // define the camera navigation mode
 
-	camExploreUpdateTargetAndDistance(g_Camera, 100.0f, g_afAvPos);
-
-//	cam(g_Camera, g_afAvPos);
+	camExploreUpdateTargetAndDistance(g_Camera, 300.0f, g_afAvPos);
 }
 
 int main(int argc, char* argv[])
@@ -420,11 +420,6 @@ void buildGrid()
 	glPopAttrib(); // pop attrib marker (undo switching off lighting)
 
 	glEndList(); // finish recording the displaylist
-}
-
-void resetNodeForce(raaNode *pNode)
-{
-	vecInitDVec(pNode->m_afForce);
 }
 
 

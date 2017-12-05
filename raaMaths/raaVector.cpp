@@ -150,9 +150,9 @@ float* vecSet( float fX, float fY, float fZ, float *pV )
 	return pV;
 }
 
-float* vecCopy( float *pIn, float *pOut )
+float* vecCopy( float *pIn, float *pOut, int length)
 {
-	if(pIn && pOut) for(int i=0;i<4;i++) pOut[i]=pIn[i];
+	if(pIn && pOut) for(int i=0;i<length;i++) pOut[i]=pIn[i];
 	return pOut;
 }
 
