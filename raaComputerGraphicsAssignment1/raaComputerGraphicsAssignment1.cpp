@@ -63,11 +63,13 @@ void calculateNodeMotion(raaNode *pNode);
 void resetNodeForce(raaNode *pNode);
 void calculateSpringForce(raaArc *pArc);
 
+bool g_bRun = false;
+
 void calculateAveragePosition(raaSystem *pSystem)
 {
-	int iNoOfNodes = 0;
+	float fNoOfNodes = 0.0f;
 	float afTotalPositions[4];
-	vecInitPVec(afTotalPositions);
+	vecInitDVec(afTotalPositions);
 	if (pSystem)
 	{
 		for (raaLinkedListElement *pE = pSystem->m_llNodes.m_pHead; pE; pE = pE->m_pNext)
@@ -75,22 +77,22 @@ void calculateAveragePosition(raaSystem *pSystem)
 			if (pE->m_uiType == csg_uiNode && pE->m_pData)
 			{
 				vecAdd(afTotalPositions, ((raaNode*)pE)->m_afPosition, afTotalPositions);
+				fNoOfNodes += 1.0f;
 			}
-			iNoOfNodes++;
 		}
 	}
-	vecScalarProduct(afTotalPositions, 1.0f / (float) iNoOfNodes, g_afAvPos);
+	vecScalarProduct(afTotalPositions, 1.0f / fNoOfNodes, g_afAvPos);
 }
 
 void randomisePositions(raaNode *pNode)
 {
-	//vecScalarProduct(pNode->m_afPosition, 3, pNode->m_afPosition);
-	vecRand(g_fMinPos, g_fMaxPos, pNode->m_afPosition);
+	vecScalarProduct(pNode->m_afPosition, 2, pNode->m_afPosition);
+	//vecRand(g_fMinPos, g_fMaxPos, pNode->m_afPosition);
 }
 
 void calcMinMax(raaNode *pNode)
 {
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		g_fMinPos = (g_fMinPos > pNode->m_afPosition[i]) ? pNode->m_afPosition[i] : g_fMinPos;
 		g_fMaxPos = (g_fMaxPos < pNode->m_afPosition[i]) ? pNode->m_afPosition[i] : g_fMaxPos;
@@ -193,9 +195,13 @@ void display()
 // processing of system and camera data outside of the renderng loop
 void idle() 
 {
-	visitNodes(&g_System, resetNodeForce);
-	visitArcs(&g_System, calculateSpringForce);
-	visitNodes(&g_System, calculateNodeMotion);
+
+	if (g_bRun)
+	{
+		visitNodes(&g_System, resetNodeForce);
+		visitArcs(&g_System, calculateSpringForce);
+		visitNodes(&g_System, calculateNodeMotion);
+	}
 	controlChangeResetAll(g_Control); // re-set the update status for all of the control flags
 	camProcessInput(g_Input, g_Camera); // update the camera pos/ori based on changes since last render
 	camResetViewportChanged(g_Camera); // re-set the camera's viwport changed flag after all events have been processed
@@ -232,6 +238,9 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 		break;
 	case 'g':
 		controlToggle(g_Control, csg_uiControlDrawGrid); // toggle the drawing of the grid
+		break;
+	case 'r':
+		g_bRun = !g_bRun;
 		break;
 	}
 }
@@ -324,13 +333,19 @@ void myInit()
 	parse(g_acFile, parseSection, parseNetwork, parseArc, parsePartition, parseVector);
 	vecInitPVec(g_afAvPos);
 	visitNodes(&g_System, calcMinMax);
+//	visitNodes(&g_System, randomisePositions);
 	calculateAveragePosition(&g_System);
-	visitNodes(&g_System, randomisePositions);
+
+
 
 	// Camera setup
 	camInit(g_Camera); // initalise the camera model
 	camInputInit(g_Input); // initialise the persistant camera input data 
 	camInputExplore(g_Input, true); // define the camera navigation mode
+
+	camExploreUpdateTargetAndDistance(g_Camera, 100.0f, g_afAvPos);
+
+//	cam(g_Camera, g_afAvPos);
 }
 
 int main(int argc, char* argv[])
