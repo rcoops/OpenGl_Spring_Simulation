@@ -62,11 +62,16 @@ void visitArcs(raaSystem* pSystem, arcFunction* pArcFunction)
 
 void visitNodes(raaSystem* pSystem, nodeFunction* pNodeFunction)
 {
-	if(pSystem && pNodeFunction)
+	visitNodesInList(&(pSystem->m_llNodes), pNodeFunction);
+}
+
+void visitNodesInList(raaLinkedList* pllNodeList, nodeFunction* pNodeFunction)
+{
+	if (pllNodeList && pNodeFunction)
 	{
-		for(raaLinkedListElement *pE=pSystem->m_llNodes.m_pHead;pE;pE=pE->m_pNext)
+		for (raaLinkedListElement *pE = pllNodeList->m_pHead; pE; pE = pE->m_pNext)
 		{
-			if(pE->m_uiType==csg_uiNode && pE->m_pData)
+			if (pE->m_uiType == csg_uiNode && pE->m_pData)
 			{
 				pNodeFunction((raaNode*)pE->m_pData);
 			}

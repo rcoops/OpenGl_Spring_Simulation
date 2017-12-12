@@ -157,6 +157,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\raaLinkedList\raaSort.cpp" />
     <ClCompile Include="raaComputerGraphicsAssignment1.cpp" />
     <ClCompile Include="raaConstants.cpp" />
     <ClCompile Include="raaControl.cpp" />
@@ -164,6 +165,7 @@
     <ClCompile Include="raaSpringCalc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\raaLinkedList\raaSort.h" />
     <ClInclude Include="raaConstants.h" />
     <ClInclude Include="raaControl.h" />
     <ClInclude Include="raaParse.h" />

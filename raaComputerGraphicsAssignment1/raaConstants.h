@@ -28,6 +28,8 @@ const static float csg_afColourTransBrightRed[] = { 1.0f, 0.2f, 0.2f, 0.6f };
 
 const static float csg_afColourClear[] = { 0.6f, 0.7f, 0.8f, 0.7f }; // screen background colour
 
+const static float csg_fLineOpacity = 0.3f;
+
 // continent colours
 const static float csg_afMaterialAfricaColour[] =		{ 1.0f, 0.0f, 0.0f, 1.0f };
 const static float csg_afMaterialAsiaColour[] =			{ 0.0f, 1.0f, 0.0f, 1.0f };

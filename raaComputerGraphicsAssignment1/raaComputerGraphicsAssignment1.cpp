@@ -12,6 +12,7 @@
 #include <raaSystem/raaSystem.h>
 #include <raaPajParser/raaPajParser.h>
 #include <raaText/raaText.h>
+#include <raaLinkedList/raaSort.h>
 
 #include "raaConstants.h"
 #include "raaParse.h"
@@ -28,7 +29,8 @@ float g_fMinPos = 1.0f;
 float g_fMaxPos = 770.0f;
 float g_afAvPos[4];
 int g_uiNumberOfNodes = 0;
-raaLinkedList *g_pllNodeByWorldOrder[3];
+raaLinkedList g_pllNodeByWorldOrder[3];
+raaLinkedList g_pllNodeByContinent[6];
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
 raaCamera g_Camera; // structure holding the camera position and orientation attributes
@@ -65,8 +67,16 @@ void drawShapeDependentOnWorldOrder(raaNode *pNode);
 void calculateNodeMotion(raaNode *pNode);
 void calculateSpringForce(raaArc *pArc);
 void setNodePositionSortedByContinent(raaNode *pNode);
+void setNodePositionSortedByWorldOrder();
+void storeNodesSorted();
 
-bool g_bRun = false;
+bool g_bRunSolver = false;
+
+
+void printWorldOrder(raaNode *pNode)
+{
+	printf("%f - %f - %f\n", pNode->m_fMass, pNode->m_fDimension, pNode->m_fTextOffset);
+}
 
 void calculateAveragePosition(raaSystem *pSystem)
 {
@@ -109,11 +119,7 @@ void nodeTextDisplay(raaNode *pNode) // function to render a node (called from d
 {
 	glPushMatrix();
 	
-	float yOffSet = pNode->m_afPosition[1] + mathsRadiusOfSphereFromVolume(pNode->m_fMass);
 	setMaterialColourByContinent(pNode);
-
-	//const float *cs_afColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
-	//glColor3fv(cs_afColour);
 	glTranslatef(pNode->m_afPosition[0], getTextYOffset(pNode), pNode->m_afPosition[2]);
 	glMultMatrixf(camRotMatInv(g_Camera));
 	glScalef(10.0f, 10.0f, 1.0f);
@@ -130,38 +136,52 @@ void setMaterialColourByContinent(raaNode *pNode)
 
 float getTextYOffset(raaNode *pNode)
 {
-	float fYOffset = 0.0f;
 	switch (pNode->m_uiWorldSystem)
 	{
 	case 1:
-		fYOffset = mathsRadiusOfSphereFromVolume(pNode->m_fMass);
+	case 3:
+		return pNode->m_fDimension + 5.0f + pNode->m_afPosition[1];
+	case 2:
+		return pNode->m_fDimension / 2.0f + 5.0f + pNode->m_afPosition[1];
+	default:
+		return 0.0f;
+	}
+}
+
+void setNodeDimensionByWorldOrder(raaNode *pNode)
+{
+	switch (pNode->m_uiWorldSystem)
+	{
+	case 1:
+		pNode->m_fDimension = mathsRadiusOfSphereFromVolume(pNode->m_fMass);
+		pNode->m_fTextOffset = pNode->m_fDimension + 5.0f;
 		break;
 	case 2:
-		fYOffset = mathsDimensionOfCubeFromVolume(pNode->m_fMass);
+		pNode->m_fDimension = mathsDimensionOfCubeFromVolume(pNode->m_fMass);
+		pNode->m_fTextOffset = pNode->m_fDimension / 2.0f + 5.0f;
 		break;
 	case 3:
-		fYOffset = mathsRadiusOfConeFromVolume(pNode->m_fMass) * 2;
+		pNode->m_fDimension = mathsRadiusOfConeFromVolume(pNode->m_fMass);
+		pNode->m_fTextOffset = pNode->m_fDimension + 5.0f;
 		break;
 	default: /* If it doesn't have a world system allocation, it's not a country... */;
 	}
-	return pNode->m_afPosition[1] + fYOffset;
 }
 
 void drawShapeDependentOnWorldOrder(raaNode *pNode)
 {
-	float fConeDimensions = 0;
 	switch(pNode->m_uiWorldSystem)
 	{
 	case 1:
-		glutSolidSphere(mathsRadiusOfSphereFromVolume(pNode->m_fMass), 10, 10);
+		glutSolidSphere(pNode->m_fDimension, 10, 10);
 		break;
 	case 2:
-		glutSolidCube(mathsDimensionOfCubeFromVolume(pNode->m_fMass));
+		glutSolidCube(pNode->m_fDimension);
 		break;
 	case 3:
-		fConeDimensions = mathsRadiusOfConeFromVolume(pNode->m_fMass);
+		glTranslatef(0.0f, -pNode->m_fDimension, 0.0f);
 		glRotatef(270.0f, 1.0f, 0.0f, 0.0f);
-		glutSolidCone(fConeDimensions, fConeDimensions * 2, 10, 10);
+		glutSolidCone(pNode->m_fDimension, pNode->m_fDimension * 2, 10, 10);
 		break;
 	default: /* If it doesn't have a world system allocation, it's not a country... */;
 	}
@@ -170,10 +190,10 @@ void drawShapeDependentOnWorldOrder(raaNode *pNode)
 void arcDisplay(raaArc *pArc) // function to render an arc (called from display())
 {
 	glPushMatrix();
-	glColor3f(0.0f, 1.0f, 0.0f);
+	glColor4f(0.0f, 1.0f, 0.0f, csg_fLineOpacity);
 	glVertex3fv(pArc->m_pNode0->m_afPosition);
 
-	glColor3f(1.0f, 0.0f, 0.0f);
+	glColor4f(1.0f, 0.0f, 0.0f, csg_fLineOpacity);
 	glVertex3fv(pArc->m_pNode1->m_afPosition);
 
 	glPopMatrix();
@@ -210,7 +230,7 @@ void display()
 // processing of system and camera data outside of the renderng loop
 void idle() 
 {
-	if (g_bRun)
+	if (g_bRunSolver)
 	{
 		visitNodes(&g_System, resetNodeForce);
 		visitArcs(&g_System, calculateSpringForce);
@@ -257,10 +277,13 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 		controlToggle(g_Control, csg_uiControlDrawGrid); // toggle the drawing of the grid
 		break;
 	case 'r':
-		g_bRun = !g_bRun;
+		g_bRunSolver = !g_bRunSolver;
 		break;
 	case 't':
 		visitNodes(&g_System, randomisePositions);
+		break;
+	case 'n':
+		setNodePositionSortedByWorldOrder();
 		break;
 	}
 }
@@ -352,6 +375,9 @@ void myInit()
 	parse(g_acFile, parseSection, parseNetwork, parseArc, parsePartition, parseVector);
 	vecInitPVec(g_afAvPos);
 	calculateAveragePosition(&g_System);
+	visitNodes(&g_System, setNodeDimensionByWorldOrder);
+	visitNodes(&g_System, printWorldOrder);
+	storeNodesSorted();
 	/* TODO build display lists here */
 	// Camera setup
 	camInit(g_Camera); // initalise the camera model
@@ -435,78 +461,53 @@ void buildGrid()
 	glEndList(); // finish recording the displaylist
 }
 
-void setNodePositionSortedByContinent(raaNode *pNode)
-{
-	float distance = 100.0f;
-	float xPosContinentOne = g_afAvPos[0] - distance * 2.5f;
-	float xPosContinentTwo = g_afAvPos[0] - distance * 1.5f;
-	float xPosContinentThree = g_afAvPos[0] - distance * 0.5f;
-	float xPosContinentFour = g_afAvPos[0] + distance * 0.5f;
-	float xPosContinentFive = g_afAvPos[0] + distance * 1.5f;
-	float xPosContinentSix = g_afAvPos[0] + distance * 2.5f;
-	raaLinkedList *nodeByContinent[6];
-
-
-	switch (pNode->m_uiContinent) {
-	case 1:
-		break;
-	case 2:
-		break;
-	case 3:
-		break;
-	case 4:
-		break;
-	case 5:
-		break;
-	case 6:
-		break;
-	}
-
-}
-
-void assignNodeToWorldOrder(raaNode *pNode)
+void assignNodeToWorldOrderList(raaNode *pNode)
 {
 	if (g_pllNodeByWorldOrder && pNode)
 	{
-		pushTail(g_pllNodeByWorldOrder[pNode->m_uiWorldSystem - 1], initElement(new raaLinkedListElement, pNode, csg_uiNode));
+		pushTail(&g_pllNodeByWorldOrder[pNode->m_uiWorldSystem - 1], initElement(new raaLinkedListElement, pNode, csg_uiNode));
 	}
 }
 
-void printWorldOrder(raaNode *pNode)
+void assignNodeToContinentList(raaNode *pNode)
 {
-
+	if (g_pllNodeByContinent && pNode)
+	{
+		pushTail(&g_pllNodeByContinent[pNode->m_uiContinent - 1], initElement(new raaLinkedListElement, pNode, csg_uiNode));
+	}
 }
 
 void setNodePositionSortedByWorldOrder()
 {
-	float xOffsets[3];
-	// Extract as global to reuse?
 	for (int i = 0; i < 3; ++i)
 	{
-		xOffsets[i] = 100.0f * (i - 3);
-		initList(g_pllNodeByWorldOrder[i], csg_uiNode);
+		float fX = 100.0f * (i - 1);
+		mergeSortNodeList(&g_pllNodeByWorldOrder[i]);
+		for (raaLinkedListElement *pE = g_pllNodeByWorldOrder[i].m_pHead; pE; pE = pE->m_pNext)
+		{
+			raaNode *pNode = (raaNode*) pE->m_pData;
+			pNode->m_afPosition[0] = fX;
+			pNode->m_afPosition[1] = pE->m_pLast ? getTextYOffset(((raaNode*) pE->m_pLast->m_pData)) + 20.0f : 50.0f;
+			pNode->m_afPosition[2] = 300.0f;
+		}
+		visitNodesInList(&g_pllNodeByWorldOrder[i], printWorldOrder);
+		printf("\n");
 	}
-	visitNodes(&g_System, assignNodeToWorldOrder);
-	for ()
-	visitNodes(&g_System, printWorldOrder);
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void storeNodesSorted()
+{
+	for (int i = 0; i < 3; ++i)
+	{
+		initList(&(g_pllNodeByWorldOrder)[i], csg_uiNode);
+	}
+	visitNodes(&g_System, assignNodeToWorldOrderList);
+	for (int i = 0; i < 3; ++i)
+	{
+		mergeSortNodeList(&g_pllNodeByWorldOrder[i]);
+	}
+}
 
 
 

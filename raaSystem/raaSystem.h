@@ -19,6 +19,8 @@ typedef struct _raaNode
 	unsigned int m_uiId;
 	float m_afPosition[4];
 	float m_fMass;
+	float m_fDimension; // Radius for cone & sphere, length for cube
+	float m_fTextOffset;
 	unsigned int m_uiContinent;
 	unsigned int m_uiWorldSystem;
 	char m_acName[64];
@@ -51,3 +53,4 @@ raaNode* nodeById(raaSystem *pSystem, unsigned int uiId);
 
 void visitNodes(raaSystem *pSystem, nodeFunction* pNodeFunction);
 void visitArcs(raaSystem *pSystem, arcFunction* pArcFunction);
+void visitNodesInList(raaLinkedList* pllNodeList, nodeFunction* pNodeFunction);
