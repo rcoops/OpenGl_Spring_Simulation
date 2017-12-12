@@ -62,7 +62,6 @@ void randomisePositions(raaNode *pNode);
 void buildGrid(); // 
 
 void setMaterialColourByContinent(raaNode *pNode);
-float getTextYOffset(raaNode *pNode);
 void drawShapeDependentOnWorldOrder(raaNode *pNode);
 void calculateNodeMotion(raaNode *pNode);
 void calculateSpringForce(raaArc *pArc);
@@ -120,7 +119,7 @@ void nodeTextDisplay(raaNode *pNode) // function to render a node (called from d
 	glPushMatrix();
 	
 	setMaterialColourByContinent(pNode);
-	glTranslatef(pNode->m_afPosition[0], getTextYOffset(pNode), pNode->m_afPosition[2]);
+	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1] + pNode->m_fTextOffset, pNode->m_afPosition[2]);
 	glMultMatrixf(camRotMatInv(g_Camera));
 	glScalef(10.0f, 10.0f, 1.0f);
 	outlinePrint(pNode->m_acName);
@@ -132,20 +131,6 @@ void setMaterialColourByContinent(raaNode *pNode)
 {
 	const float *cs_pafColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
 	utilitiesColourToMat(cs_pafColour, 2.0f);
-}
-
-float getTextYOffset(raaNode *pNode)
-{
-	switch (pNode->m_uiWorldSystem)
-	{
-	case 1:
-	case 3:
-		return pNode->m_fDimension + 5.0f + pNode->m_afPosition[1];
-	case 2:
-		return pNode->m_fDimension / 2.0f + 5.0f + pNode->m_afPosition[1];
-	default:
-		return 0.0f;
-	}
 }
 
 void setNodeDimensionByWorldOrder(raaNode *pNode)
@@ -486,8 +471,9 @@ void setNodePositionSortedByWorldOrder()
 		for (raaLinkedListElement *pE = g_pllNodeByWorldOrder[i].m_pHead; pE; pE = pE->m_pNext)
 		{
 			raaNode *pNode = (raaNode*) pE->m_pData;
+			raaNode *pLast = pE->m_pLast ? ((raaNode*)pE->m_pLast->m_pData) : 0;
 			pNode->m_afPosition[0] = fX;
-			pNode->m_afPosition[1] = pE->m_pLast ? getTextYOffset(((raaNode*) pE->m_pLast->m_pData)) + 20.0f : 50.0f;
+			pNode->m_afPosition[1] = pLast ? pLast->m_afPosition[1] + pLast->m_fTextOffset + 30.0f : 50.0f;
 			pNode->m_afPosition[2] = 300.0f;
 		}
 		visitNodesInList(&g_pllNodeByWorldOrder[i], printWorldOrder);
