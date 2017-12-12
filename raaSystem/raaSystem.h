@@ -51,5 +51,3 @@ raaNode* nodeById(raaSystem *pSystem, unsigned int uiId);
 
 void visitNodes(raaSystem *pSystem, nodeFunction* pNodeFunction);
 void visitArcs(raaSystem *pSystem, arcFunction* pArcFunction);
-
-

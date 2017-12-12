@@ -28,6 +28,7 @@ float g_fMinPos = 1.0f;
 float g_fMaxPos = 770.0f;
 float g_afAvPos[4];
 int g_uiNumberOfNodes = 0;
+raaLinkedList *g_pllNodeByWorldOrder[3];
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
 raaCamera g_Camera; // structure holding the camera position and orientation attributes
@@ -59,9 +60,11 @@ void randomisePositions(raaNode *pNode);
 void buildGrid(); // 
 
 void setMaterialColourByContinent(raaNode *pNode);
+float getTextYOffset(raaNode *pNode);
 void drawShapeDependentOnWorldOrder(raaNode *pNode);
 void calculateNodeMotion(raaNode *pNode);
 void calculateSpringForce(raaArc *pArc);
+void setNodePositionSortedByContinent(raaNode *pNode);
 
 bool g_bRun = false;
 
@@ -91,15 +94,6 @@ void randomisePositions(raaNode *pNode)
 	vecRand(g_fMinPos, g_fMaxPos, pNode->m_afPosition);
 }
 
-//void calcMinMax(raaNode *pNode)
-//{
-//	for (int i = 0; i < 3; i++)
-//	{
-//		g_fMinPos = (g_fMinPos > pNode->m_afPosition[i]) ? pNode->m_afPosition[i] : g_fMinPos;
-//		g_fMaxPos = (g_fMaxPos < pNode->m_afPosition[i]) ? pNode->m_afPosition[i] : g_fMaxPos;
-//	}
-//}
-
 void nodeDisplay(raaNode *pNode) // function to render a node (called from display())
 {
 	glPushMatrix();
@@ -107,20 +101,23 @@ void nodeDisplay(raaNode *pNode) // function to render a node (called from displ
 	setMaterialColourByContinent(pNode);
 	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
 	drawShapeDependentOnWorldOrder(pNode);
-	
+	// display list store in node
 	glPopMatrix();
 }
 
 void nodeTextDisplay(raaNode *pNode) // function to render a node (called from display())
 {
 	glPushMatrix();
-	glLoadIdentity();
+	
 	float yOffSet = pNode->m_afPosition[1] + mathsRadiusOfSphereFromVolume(pNode->m_fMass);
-	char *pNodeName = pNode->m_acName;
-	const float *cs_afColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
-	glColor3fv(cs_afColour);
-	glTranslatef(pNode->m_afPosition[0], yOffSet, pNode->m_afPosition[2]);
-	outlinePrint(pNodeName, true);
+	setMaterialColourByContinent(pNode);
+
+	//const float *cs_afColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
+	//glColor3fv(cs_afColour);
+	glTranslatef(pNode->m_afPosition[0], getTextYOffset(pNode), pNode->m_afPosition[2]);
+	glMultMatrixf(camRotMatInv(g_Camera));
+	glScalef(10.0f, 10.0f, 1.0f);
+	outlinePrint(pNode->m_acName);
 
 	glPopMatrix();
 }
@@ -129,6 +126,25 @@ void setMaterialColourByContinent(raaNode *pNode)
 {
 	const float *cs_pafColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
 	utilitiesColourToMat(cs_pafColour, 2.0f);
+}
+
+float getTextYOffset(raaNode *pNode)
+{
+	float fYOffset = 0.0f;
+	switch (pNode->m_uiWorldSystem)
+	{
+	case 1:
+		fYOffset = mathsRadiusOfSphereFromVolume(pNode->m_fMass);
+		break;
+	case 2:
+		fYOffset = mathsDimensionOfCubeFromVolume(pNode->m_fMass);
+		break;
+	case 3:
+		fYOffset = mathsRadiusOfConeFromVolume(pNode->m_fMass) * 2;
+		break;
+	default: /* If it doesn't have a world system allocation, it's not a country... */;
+	}
+	return pNode->m_afPosition[1] + fYOffset;
 }
 
 void drawShapeDependentOnWorldOrder(raaNode *pNode)
@@ -176,10 +192,9 @@ void display()
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
 	visitNodes(&g_System, nodeDisplay); // loop through all of the nodes and draw them with the nodeDisplay function
 	glPopAttrib();
-	//glDisable(GL_LIGHTING); // switch of lighting to render lines
-	//glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
-	//visitNodes(&g_System, nodeTextDisplay);
-	//glPopAttrib();
+	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
+	visitNodes(&g_System, nodeTextDisplay);
+	glPopAttrib();
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attrib marker
 	glDisable(GL_LIGHTING); // switch of lighting to render lines
 	glBegin(GL_LINES);
@@ -310,7 +325,6 @@ void motion(int iXPos, int iYPos)
 	if(g_Input.m_bMouse || g_Input.m_bMousePan) camInputSetMouseLast(g_Input, iXPos, iYPos);
 }
 
-
 void myInit()
 {
 	// setup my event control structure
@@ -337,15 +351,14 @@ void myInit()
 	initSystem(&g_System);
 	parse(g_acFile, parseSection, parseNetwork, parseArc, parsePartition, parseVector);
 	vecInitPVec(g_afAvPos);
-//	visitNodes(&g_System, calcMinMax);
 	calculateAveragePosition(&g_System);
-
+	/* TODO build display lists here */
 	// Camera setup
 	camInit(g_Camera); // initalise the camera model
 	camInputInit(g_Input); // initialise the persistant camera input data 
 	camInputExplore(g_Input, true); // define the camera navigation mode
 
-	camExploreUpdateTargetAndDistance(g_Camera, 300.0f, g_afAvPos);
+	camExploreUpdateTargetAndDistance(g_Camera, 150.0f, g_afAvPos);
 }
 
 int main(int argc, char* argv[])
@@ -422,8 +435,62 @@ void buildGrid()
 	glEndList(); // finish recording the displaylist
 }
 
+void setNodePositionSortedByContinent(raaNode *pNode)
+{
+	float distance = 100.0f;
+	float xPosContinentOne = g_afAvPos[0] - distance * 2.5f;
+	float xPosContinentTwo = g_afAvPos[0] - distance * 1.5f;
+	float xPosContinentThree = g_afAvPos[0] - distance * 0.5f;
+	float xPosContinentFour = g_afAvPos[0] + distance * 0.5f;
+	float xPosContinentFive = g_afAvPos[0] + distance * 1.5f;
+	float xPosContinentSix = g_afAvPos[0] + distance * 2.5f;
+	raaLinkedList *nodeByContinent[6];
 
 
+	switch (pNode->m_uiContinent) {
+	case 1:
+		break;
+	case 2:
+		break;
+	case 3:
+		break;
+	case 4:
+		break;
+	case 5:
+		break;
+	case 6:
+		break;
+	}
+
+}
+
+void assignNodeToWorldOrder(raaNode *pNode)
+{
+	if (g_pllNodeByWorldOrder && pNode)
+	{
+		pushTail(g_pllNodeByWorldOrder[pNode->m_uiWorldSystem - 1], initElement(new raaLinkedListElement, pNode, csg_uiNode));
+	}
+}
+
+void printWorldOrder(raaNode *pNode)
+{
+
+}
+
+void setNodePositionSortedByWorldOrder()
+{
+	float xOffsets[3];
+	// Extract as global to reuse?
+	for (int i = 0; i < 3; ++i)
+	{
+		xOffsets[i] = 100.0f * (i - 3);
+		initList(g_pllNodeByWorldOrder[i], csg_uiNode);
+	}
+	visitNodes(&g_System, assignNodeToWorldOrder);
+	for ()
+	visitNodes(&g_System, printWorldOrder);
+
+}
 
 
 
