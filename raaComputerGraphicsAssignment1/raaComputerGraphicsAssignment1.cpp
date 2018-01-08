@@ -29,8 +29,8 @@ float g_fMinPos = 1.0f;
 float g_fMaxPos = 770.0f;
 float g_afAvPos[4];
 int g_uiNumberOfNodes = 0;
-raaLinkedList g_pllNodeByWorldOrder[3];
-raaLinkedList g_pllNodeByContinent[6];
+raaLinkedList g_pllNodeByWorldOrder[csg_uiNumberOfWorldOrders];
+raaLinkedList g_pllNodeByContinent[csg_uiNumberOfContinents];
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
 raaCamera g_Camera; // structure holding the camera position and orientation attributes
@@ -65,12 +65,13 @@ void setMaterialColourByContinent(raaNode *pNode);
 void drawShapeDependentOnWorldOrder(raaNode *pNode);
 void calculateNodeMotion(raaNode *pNode);
 void calculateSpringForce(raaArc *pArc);
-void setNodePositionSortedByContinent(raaNode *pNode);
-void setNodePositionSortedByWorldOrder();
-void storeNodesSorted();
+
+void setNodePositionBySortedOrder(unsigned int uiCategories, raaLinkedList *sortedList);
+void sortNodesByCategory(unsigned int categories, raaLinkedList *sortedList, nodeFunction nfSort);
+void assignNodeToWorldOrderList(raaNode *pNode);
+void assignNodeToContinentList(raaNode *pNode);
 
 bool g_bRunSolver = false;
-
 
 void printWorldOrder(raaNode *pNode)
 {
@@ -268,8 +269,11 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 		visitNodes(&g_System, randomisePositions);
 		break;
 	case 'n':
-		setNodePositionSortedByWorldOrder();
+		setNodePositionBySortedOrder(csg_uiNumberOfWorldOrders, g_pllNodeByWorldOrder);
+		//setNodePositionSortedByWorldOrder();
 		break;
+	case 'm':
+		setNodePositionBySortedOrder(csg_uiNumberOfContinents, g_pllNodeByContinent);
 	}
 }
 
@@ -362,7 +366,8 @@ void myInit()
 	calculateAveragePosition(&g_System);
 	visitNodes(&g_System, setNodeDimensionByWorldOrder);
 	visitNodes(&g_System, printWorldOrder);
-	storeNodesSorted();
+	sortNodesByCategory(csg_uiNumberOfWorldOrders, g_pllNodeByWorldOrder, assignNodeToWorldOrderList);
+	sortNodesByCategory(csg_uiNumberOfContinents, g_pllNodeByContinent, assignNodeToContinentList);
 	/* TODO build display lists here */
 	// Camera setup
 	camInit(g_Camera); // initalise the camera model
@@ -462,39 +467,36 @@ void assignNodeToContinentList(raaNode *pNode)
 	}
 }
 
-void setNodePositionSortedByWorldOrder()
+void setNodePositionBySortedOrder(unsigned int uiCategories, raaLinkedList *pllSortedList)
 {
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < uiCategories; ++i)
 	{
 		float fX = 100.0f * (i - 1);
-		mergeSortNodeList(&g_pllNodeByWorldOrder[i]);
-		for (raaLinkedListElement *pE = g_pllNodeByWorldOrder[i].m_pHead; pE; pE = pE->m_pNext)
+		mergeSortNodeList(&pllSortedList[i]);
+		for (raaLinkedListElement *pE = pllSortedList[i].m_pHead; pE; pE = pE->m_pNext)
 		{
-			raaNode *pNode = (raaNode*) pE->m_pData;
+			raaNode *pNode = (raaNode*)pE->m_pData;
 			raaNode *pLast = pE->m_pLast ? ((raaNode*)pE->m_pLast->m_pData) : 0;
 			pNode->m_afPosition[0] = fX;
 			pNode->m_afPosition[1] = pLast ? pLast->m_afPosition[1] + pLast->m_fTextOffset + 30.0f : 50.0f;
 			pNode->m_afPosition[2] = 300.0f;
 		}
-		visitNodesInList(&g_pllNodeByWorldOrder[i], printWorldOrder);
 		printf("\n");
 	}
-
 }
 
-void storeNodesSorted()
+void sortNodesByCategory(unsigned int uiCategories, raaLinkedList *pllSortedList, nodeFunction nfSort)
 {
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < uiCategories; ++i)
 	{
-		initList(&(g_pllNodeByWorldOrder)[i], csg_uiNode);
+		initList(&(pllSortedList)[i], csg_uiNode);
 	}
-	visitNodes(&g_System, assignNodeToWorldOrderList);
-	for (int i = 0; i < 3; ++i)
+	visitNodes(&g_System, nfSort);
+	for (int i = 0; i < uiCategories; ++i)
 	{
-		mergeSortNodeList(&g_pllNodeByWorldOrder[i]);
+		mergeSortNodeList(&pllSortedList[i]);
 	}
 }
-
 
 
 

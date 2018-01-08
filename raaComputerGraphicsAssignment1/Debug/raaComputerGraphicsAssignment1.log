@@ -1,2 +1,5 @@
 ﻿  raaComputerGraphicsAssignment1.cpp
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(472): warning C4018: '<': signed/unsigned mismatch
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(490): warning C4018: '<': signed/unsigned mismatch
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(495): warning C4018: '<': signed/unsigned mismatch
   raaComputerGraphicsAssignment1.vcxproj -> C:\Users\rcoop\OneDrive\Documents\Visual Studio 2015\Projects\cg_assignment\raaComputerGraphicsAssignment1\Debug\CG-2017AssignmentD.exe
