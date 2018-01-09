@@ -171,7 +171,6 @@ void moveToContinentPositions(raaNode *pNode)
 	moveToSortedOrder(pNode->m_afContinentPosition, pNode);
 }
 
-
 void sortNodes(raaLinkedList *pllNodeList)
 {
 	sortNodesByCategory(csg_uiWorldOrdersCategory, pllNodeList);

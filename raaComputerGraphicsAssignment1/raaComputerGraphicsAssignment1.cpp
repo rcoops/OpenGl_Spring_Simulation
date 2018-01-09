@@ -29,13 +29,16 @@ float g_fMinPos = 1.0f;
 float g_fMaxPos = 770.0f;
 float g_afAvPos[4];
 int g_uiNumberOfNodes = 0;
+int g_iBaseNodeDisplayListId = 0;
+
+bool g_bCentreCamera = false;
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
 raaCamera g_Camera; // structure holding the camera position and orientation attributes
 raaSystem g_System; // data structure holding the imported graph of data - you may need to modify and extend this to support your functionallity
 raaControl g_Control; // set of flag controls used in my implmentation to retain state of key actions
 
-					  // global var: parameter name for the file to load
+// global var: parameter name for the file to load
 const static char csg_acFileParam[] = { "-input" };
 
 // global var: file to load data from
@@ -66,17 +69,21 @@ void sKeyboardUp(int iC, int iXPos, int iYPos); // called for each keyboard rele
 void mouse(int iKey, int iEvent, int iXPos, int iYPos); // called for each mouse key event
 void motion(int iXPos, int iYPos); // called for each mouse motion event
 
-								   // Non glut functions
+// Non glut functions
 void myInit(); // the myinit function runs once, before rendering starts and should be used for setup
 void nodeDisplay(raaNode *pNode); // callled by the display function to draw nodes
 void arcDisplay(raaArc *pArc); // called by the display function to draw arcs
-void randomisePositions(raaNode *pNode);
 void buildGrid(); // 
 
+void randomisePositions(raaNode *pNode);
+
+// Node display list functions
+void toggleNodeSorting(nodePositioning move);
 void setMaterialColourByContinent(raaNode *pNode);
 void drawShapeDependentOnWorldOrder(raaNode *pNode);
-void calculateNodeMotion(raaNode *pNode);
-void calculateSpringForce(raaArc *pArc);
+
+void initNodeDisplayList(raaNode *pNode);
+
 
 void calculateAveragePosition(raaSystem *pSystem)
 {
@@ -95,6 +102,7 @@ void calculateAveragePosition(raaSystem *pSystem)
 			}
 		}
 	}
+	g_uiNumberOfNodes = (int)fNoOfNodes;
 	vecScalarProduct(afTotalPositions, 1.0f / fNoOfNodes, g_afAvPos);
 }
 
@@ -107,11 +115,8 @@ void randomisePositions(raaNode *pNode)
 void nodeDisplay(raaNode *pNode) // function to render a node (called from display())
 {
 	glPushMatrix();
-
-	setMaterialColourByContinent(pNode);
 	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
-	drawShapeDependentOnWorldOrder(pNode);
-	// display list store in node
+	glCallList(g_iBaseNodeDisplayListId + pNode->m_uiId - 1);
 	glPopMatrix();
 }
 
@@ -165,8 +170,8 @@ void drawShapeDependentOnWorldOrder(raaNode *pNode)
 		glutSolidCube(pNode->m_fDimension);
 		break;
 	case 3:
-		glTranslatef(0.0f, -pNode->m_fDimension, 0.0f);
-		glRotatef(270.0f, 1.0f, 0.0f, 0.0f);
+		glTranslatef(0.0f, -pNode->m_fDimension, 0.0f); // Adjust position to allow rotation
+		glRotatef(270.0f, 1.0f, 0.0f, 0.0f);			// Rotate so cone pointing up
 		glutSolidCone(pNode->m_fDimension, pNode->m_fDimension * 2, 10, 10);
 		break;
 	default: /* If it doesn't have a world system allocation, it's not a country... */;
@@ -195,12 +200,12 @@ void display()
 
 										// draw the grid if the control flag for it is true	
 	if (controlActive(g_Control, csg_uiControlDrawGrid)) glCallList(gs_uiGridDisplayList);
+
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
 	visitNodes(&g_System, nodeDisplay); // loop through all of the nodes and draw them with the nodeDisplay function
-	glPopAttrib();
-	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
 	visitNodes(&g_System, nodeTextDisplay);
 	glPopAttrib();
+
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attrib marker
 	glDisable(GL_LIGHTING); // switch of lighting to render lines
 	glBegin(GL_LINES);
@@ -210,7 +215,6 @@ void display()
 
 	glFlush(); // ensure all the ogl instructions have been processed
 	glutSwapBuffers(); // present the rendered scene to the screen
-	calcTime();
 }
 
 // processing of system and camera data outside of the renderng loop
@@ -232,7 +236,7 @@ void idle()
 	case none:
 		break;
 	}
-	if (gNodePositioning != none)
+	if (g_bCentreCamera)
 	{
 		// Centre cam on average node position
 		calculateAveragePosition(&g_System);
@@ -261,6 +265,7 @@ void reshape(int iWidth, int iHeight)
 
 void toggleNodeSorting(nodePositioning move)
 {
+	g_bCentreCamera = true;
 	gNodePositioning = gNodePositioning == move ? none : move;
 }
 
@@ -296,6 +301,8 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 	case 'b':
 		gNodePositioning = none;
 		break;
+	case 'z':
+		g_bCentreCamera = !g_bCentreCamera;
 	default:;//nothing
 	}
 }
@@ -360,6 +367,12 @@ void motion(int iXPos, int iYPos)
 	if (g_Input.m_bMouse || g_Input.m_bMousePan) camInputSetMouseLast(g_Input, iXPos, iYPos);
 }
 
+void initNodeDisplayLists()
+{
+	if (!g_iBaseNodeDisplayListId) g_iBaseNodeDisplayListId = glGenLists(g_uiNumberOfNodes);
+	visitNodes(&g_System, initNodeDisplayList);
+}
+
 void myInit()
 {
 	controlInit(g_Control); // setup my event control structure
@@ -382,17 +395,29 @@ void myInit()
 	// initialise the data system and load the data file
 	initSystem(&g_System);
 	parse(g_acFile, parseSection, parseNetwork, parseArc, parsePartition, parseVector);
+
+	// Calc average node position for camera centre
 	vecInitPVec(g_afAvPos);
 	calculateAveragePosition(&g_System);
+
+	// One-time operations for nodes
 	visitNodes(&g_System, setNodeDimensionByWorldOrder);
 	sortNodes(&(g_System.m_llNodes));
-	/* TODO build display lists here */
+	initNodeDisplayLists();
+
 	// Camera setup
 	camInit(g_Camera); // initalise the camera model
 	camInputInit(g_Input); // initialise the persistant camera input data 
 	camInputExplore(g_Input, true); // define the camera navigation mode
+	camExploreUpdateTargetAndDistance(g_Camera, 150.0f, g_afAvPos); // Centre camera direction on average node position
+}
 
-	camExploreUpdateTargetAndDistance(g_Camera, 150.0f, g_afAvPos);
+void initNodeDisplayList(raaNode *pNode)
+{
+	glNewList(g_iBaseNodeDisplayListId + pNode->m_uiId - 1, GL_COMPILE);
+	setMaterialColourByContinent(pNode);
+	drawShapeDependentOnWorldOrder(pNode);
+	glEndList();
 }
 
 int main(int argc, char* argv[])

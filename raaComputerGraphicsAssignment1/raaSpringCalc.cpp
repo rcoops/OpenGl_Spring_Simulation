@@ -1,8 +1,5 @@
 ﻿#include "raaSpringCalc.h"
 
-unsigned long g_ulLastTime = 0;
-float g_fFrameTime = 0.0f;
-
 void resetNodeForce(raaNode *pNode)
 {
 	vecInitDVec(pNode->m_vfForce);
@@ -44,19 +41,4 @@ void calculateNodeMotion(raaNode *pNode)
 
 	// Apply damping v^''=v'*(1.0-∑_0^1 DampingCoef)
 	vecScalarProduct(pNode->m_vfVelocity, csg_fDampeningCoefficient, pNode->m_vfVelocity);
-}
-
-void calcTime()
-{
-	if (g_ulLastTime)
-	{
-		unsigned long ulNow = timeGetTime();
-		g_fFrameTime = ((float)(ulNow - g_ulLastTime)) / 1000.0f;
-		g_ulLastTime = ulNow;
-	}
-	else
-	{
-		g_ulLastTime = timeGetTime();
-	}
-
 }

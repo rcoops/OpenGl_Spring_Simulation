@@ -7,6 +7,7 @@
 
 #include <raaLinkedList/raaLinkedList.h>
 #include <raaMaths/raaVector.h>
+#include <freeglut/gl/freeglut_std.h>
 
 typedef struct _raaSystem
 {

@@ -7,4 +7,3 @@
 void calculateSpringForce(raaArc *pArc);
 void calculateNodeMotion(raaNode *pNode);
 void resetNodeForce(raaNode *pNode);
-void calcTime();
