@@ -29,8 +29,8 @@ float g_fMinPos = 1.0f;
 float g_fMaxPos = 770.0f;
 float g_afAvPos[4];
 int g_uiNumberOfNodes = 0;
-raaLinkedList g_pllNodeByWorldOrder[csg_uiNumberOfWorldOrders];
-raaLinkedList g_pllNodeByContinent[csg_uiNumberOfContinents];
+raaLinkedList g_pllNodeByWorldOrder[csg_uiWorldOrders];
+raaLinkedList g_pllNodeByContinent[csg_uiContinents];
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
 raaCamera g_Camera; // structure holding the camera position and orientation attributes
@@ -42,6 +42,20 @@ const static char csg_acFileParam[] = {"-input"};
 
 // global var: file to load data from
 char g_acFile[256];
+
+bool g_bRunSolver = false;
+bool g_bSortByWorldOrder = false;
+bool g_bSortByContinent = false;
+
+enum movement
+{
+	none,
+	springs,
+	worldOrder,
+	continent
+};
+
+movement gMovement = none;
 
 // core functions -> reduce to just the ones needed by glut as pointers to functions to fulfill tasks
 void display(); // The rendering function. This is called once for each frame and you should put rendering code here
@@ -70,13 +84,13 @@ void setNodePositionBySortedOrder(unsigned int uiCategories, raaLinkedList *sort
 void sortNodesByCategory(unsigned int categories, raaLinkedList *sortedList, nodeFunction nfSort);
 void assignNodeToWorldOrderList(raaNode *pNode);
 void assignNodeToContinentList(raaNode *pNode);
+void assignNodeToCategoryList(unsigned int uiCategory, raaLinkedList *pllSortedList, raaNode *pNode);
 
-bool g_bRunSolver = false;
+void setToOrder(float *vfNewPosition, raaNode *pNode);
 
-void printWorldOrder(raaNode *pNode)
-{
-	printf("%f - %f - %f\n", pNode->m_fMass, pNode->m_fDimension, pNode->m_fTextOffset);
-}
+void setToWorldOrder(raaNode *pNode);
+
+void setToContinent(raaNode *pNode);
 
 void calculateAveragePosition(raaSystem *pSystem)
 {
@@ -216,11 +230,24 @@ void display()
 // processing of system and camera data outside of the renderng loop
 void idle() 
 {
-	if (g_bRunSolver)
+	switch (gMovement)
 	{
+	case springs:
 		visitNodes(&g_System, resetNodeForce);
 		visitArcs(&g_System, calculateSpringForce);
 		visitNodes(&g_System, calculateNodeMotion);
+		break;
+	case worldOrder:
+		visitNodes(&g_System, setToWorldOrder);
+		break;
+	case continent:
+		visitNodes(&g_System, setToContinent);
+		break;
+	case none:
+		break;
+	}
+	if (gMovement != none)
+	{
 		calculateAveragePosition(&g_System);
 		camExploreUpdateTarget(g_Camera, g_afAvPos);
 	}
@@ -245,6 +272,37 @@ void reshape(int iWidth, int iHeight)
 	glutPostRedisplay(); // ask glut to update the screen
 }
 
+void setToOrder(float *vfNewPosition, raaNode *pNode)
+{
+	float vfArc[4], vfArcDirection[4], vfForce[4];
+	vecInitDVec(vfArc); vecInitDVec(vfArcDirection);
+	vecSub(pNode->m_afPosition, vfNewPosition, vfArc); // Calc arc length vector
+	float fCurrentArcLength = vecNormalise(vfArc, vfArcDirection); // Calc scalar distance and direction vector
+	if (fCurrentArcLength > 1 || fCurrentArcLength < -1)
+	{
+		vecSub(pNode->m_afPosition, vfArcDirection, pNode->m_afPosition); // Calc arc length vector
+	}
+	if (pNode->m_uiId == 1)
+	{
+		printf("%f\n", fCurrentArcLength);
+	}
+}
+
+void setToWorldOrder(raaNode *pNode)
+{
+	setToOrder(pNode->m_afWorldOrderPosition, pNode);
+}
+
+void setToContinent(raaNode *pNode)
+{
+	setToOrder(pNode->m_afContinentPosition, pNode);
+}
+
+void toggleMove(movement move)
+{
+	gMovement = gMovement == move ? none : move;
+}
+
 // detect key presses and assign them to actions
 void keyboard(unsigned char c, int iXPos, int iYPos)
 {
@@ -263,17 +321,19 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 		controlToggle(g_Control, csg_uiControlDrawGrid); // toggle the drawing of the grid
 		break;
 	case 'r':
-		g_bRunSolver = !g_bRunSolver;
+		toggleMove(springs);
 		break;
 	case 't':
 		visitNodes(&g_System, randomisePositions);
 		break;
 	case 'n':
-		setNodePositionBySortedOrder(csg_uiNumberOfWorldOrders, g_pllNodeByWorldOrder);
-		//setNodePositionSortedByWorldOrder();
+		toggleMove(worldOrder);
 		break;
 	case 'm':
-		setNodePositionBySortedOrder(csg_uiNumberOfContinents, g_pllNodeByContinent);
+		toggleMove(continent);
+		break;
+	case 'b':
+		gMovement = none;
 	}
 }
 
@@ -365,9 +425,8 @@ void myInit()
 	vecInitPVec(g_afAvPos);
 	calculateAveragePosition(&g_System);
 	visitNodes(&g_System, setNodeDimensionByWorldOrder);
-	visitNodes(&g_System, printWorldOrder);
-	sortNodesByCategory(csg_uiNumberOfWorldOrders, g_pllNodeByWorldOrder, assignNodeToWorldOrderList);
-	sortNodesByCategory(csg_uiNumberOfContinents, g_pllNodeByContinent, assignNodeToContinentList);
+	sortNodesByCategory(csg_uiWorldOrders, g_pllNodeByWorldOrder, assignNodeToWorldOrderList);
+	sortNodesByCategory(csg_uiContinents, g_pllNodeByContinent, assignNodeToContinentList);
 	/* TODO build display lists here */
 	// Camera setup
 	camInit(g_Camera); // initalise the camera model
@@ -453,49 +512,50 @@ void buildGrid()
 
 void assignNodeToWorldOrderList(raaNode *pNode)
 {
-	if (g_pllNodeByWorldOrder && pNode)
-	{
-		pushTail(&g_pllNodeByWorldOrder[pNode->m_uiWorldSystem - 1], initElement(new raaLinkedListElement, pNode, csg_uiNode));
-	}
+	assignNodeToCategoryList(pNode->m_uiWorldSystem, g_pllNodeByWorldOrder, pNode);
 }
 
 void assignNodeToContinentList(raaNode *pNode)
 {
-	if (g_pllNodeByContinent && pNode)
+	assignNodeToCategoryList(pNode->m_uiContinent, g_pllNodeByContinent, pNode);
+}
+
+void assignNodeToCategoryList(unsigned int uiCategory, raaLinkedList *pllSortedList, raaNode *pNode)
+{
+	if (pllSortedList && pNode)
 	{
-		pushTail(&g_pllNodeByContinent[pNode->m_uiContinent - 1], initElement(new raaLinkedListElement, pNode, csg_uiNode));
+		pushTail(&pllSortedList[uiCategory - 1], initElement(new raaLinkedListElement, pNode, csg_uiNode));
 	}
 }
 
-void setNodePositionBySortedOrder(unsigned int uiCategories, raaLinkedList *pllSortedList)
+void setNodePositionBySortedOrder(unsigned int uiNumberOfCategories, raaLinkedList *pllSortedList)
 {
-	for (int i = 0; i < uiCategories; ++i)
+	for (int i = 0; i < uiNumberOfCategories; ++i)
 	{
 		float fX = 100.0f * (i - 1);
-		mergeSortNodeList(&pllSortedList[i]);
+		float *afPosition;
 		for (raaLinkedListElement *pE = pllSortedList[i].m_pHead; pE; pE = pE->m_pNext)
 		{
 			raaNode *pNode = (raaNode*)pE->m_pData;
 			raaNode *pLast = pE->m_pLast ? ((raaNode*)pE->m_pLast->m_pData) : 0;
-			pNode->m_afPosition[0] = fX;
-			pNode->m_afPosition[1] = pLast ? pLast->m_afPosition[1] + pLast->m_fTextOffset + 30.0f : 50.0f;
-			pNode->m_afPosition[2] = 300.0f;
+			float fYPosition = pLast ? afPosition[1] + pLast->m_fTextOffset + 30.0f : 50.0f; // Use 'last' position to find y (if last exists)
+			afPosition = uiNumberOfCategories == 6 ? pNode->m_afContinentPosition : pNode->m_afWorldOrderPosition;
+			afPosition[0] = fX;
+			afPosition[1] = fYPosition;
+			afPosition[2] = 300.0f;
 		}
-		printf("\n");
 	}
 }
 
-void sortNodesByCategory(unsigned int uiCategories, raaLinkedList *pllSortedList, nodeFunction nfSort)
+void sortNodesByCategory(unsigned int uiNumberOfCategories, raaLinkedList *pllSortedList, nodeFunction nfSort)
 {
-	for (int i = 0; i < uiCategories; ++i)
-	{
-		initList(&(pllSortedList)[i], csg_uiNode);
-	}
+	for (int i = 0; i < uiNumberOfCategories; ++i) initList(&(pllSortedList)[i], csg_uiNode);
+	
 	visitNodes(&g_System, nfSort);
-	for (int i = 0; i < uiCategories; ++i)
-	{
-		mergeSortNodeList(&pllSortedList[i]);
-	}
+
+	for (int i = 0; i < uiNumberOfCategories; ++i) mergeSortNodeList(&pllSortedList[i]);
+
+	setNodePositionBySortedOrder(uiNumberOfCategories, pllSortedList);
 }
 
 

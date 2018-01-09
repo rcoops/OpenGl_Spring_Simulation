@@ -19,7 +19,7 @@ float vecDotProduct(float *pV0, float *pV1);
 float* vecCrossProduct(float *pV0, float *pV1, float *pVRes);
 float vecLength(float *pV);
 float vecDistance(float *pV1, float *pV2);
-float vecNormalise(float *pV0, float *pVRes);
+float  vecNormalise(float *pV0, float *pVRes);
 float* vecProject(float *pVStart, float *pVDir, float fLen, float *pVRes);
 float* vecSet(float fX, float fY, float fZ, float *pV);
 float* vecCopy(float *pIn, float *pOut, int length);

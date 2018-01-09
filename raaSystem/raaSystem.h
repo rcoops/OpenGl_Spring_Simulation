@@ -26,6 +26,8 @@ typedef struct _raaNode
 	char m_acName[64];
 	float m_vfForce[4];
 	float m_vfVelocity[4];
+	float m_afContinentPosition[4];
+	float m_afWorldOrderPosition[4];
 } raaNode;
 
 typedef struct _raaArc
