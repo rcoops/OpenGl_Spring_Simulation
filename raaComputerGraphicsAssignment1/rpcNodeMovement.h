@@ -15,3 +15,6 @@ void togglePositioning(nodePositioning positioning);
 void calculateNodeMovement(raaSystem *pSystem);
 
 void pauseMovement();
+
+float* calculateAveragePosition(raaSystem *pSystem);
+void randomisePosition(raaNode *pNode);

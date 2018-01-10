@@ -1,9 +1,6 @@
 ﻿  rpcNodeMovement.cpp
-  raaComputerGraphicsAssignment1.cpp
-  Generating Code...
-  Skipping... (no relevant changes detected)
-  raaParse.cpp
-  raaControl.cpp
-  raaConstants.cpp
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\rpcnodemovement.cpp(134): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
   rpcSort.cpp
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raalinkedlist\rpcsort.cpp(126): warning C4018: '<': signed/unsigned mismatch
+  Generating Code...
   raaComputerGraphicsAssignment1.vcxproj -> C:\Users\rcoop\OneDrive\Documents\Visual Studio 2015\Projects\cg_assignment\raaComputerGraphicsAssignment1\Debug\CG-2017AssignmentD.exe

@@ -3,6 +3,10 @@
 nodePositioning g_eCurrentNodePositioning = none;
 nodePositioning g_eSavedPreviousPositioning = none;
 
+float g_afAverageNodePosition[4];
+float g_afAggregatedPositions[4];
+float g_fNumberOfNodes = 0.0f;
+
 /* no need for these functions to be available in other files */
 
 // Spring calc
@@ -14,6 +18,8 @@ void resetNodeForce(raaNode *pNode);
 void moveToSortedOrder(float *vfNewPosition, raaNode *pNode);
 void moveToWorldOrderPositions(raaNode *pNode);
 void moveToContinentPositions(raaNode *pNode);
+
+void aggregatePosition(raaNode *pNode);
 
 void resetNodeForce(raaNode *pNode)
 {
@@ -98,8 +104,10 @@ void moveToSortedOrder(float *afNewPosition, raaNode *pNode)
 {
 	float vfRoute[4], vfDirection[4];
 	vecInitDVec(vfRoute); vecInitDVec(vfDirection);
+
 	vecSub(pNode->m_afPosition, afNewPosition, vfRoute); // Calc route from original to target position
 	float fCurrentDistance = vecNormalise(vfRoute, vfDirection); // Calc scalar distance and direction vector
+
 	if (fCurrentDistance > 1) // If it's not really close
 	{
 		vecSub(pNode->m_afPosition, vfDirection, pNode->m_afPosition); // Move the node position a single unit in direction
@@ -114,4 +122,24 @@ void moveToWorldOrderPositions(raaNode *pNode)
 void moveToContinentPositions(raaNode *pNode)
 {
 	moveToSortedOrder(pNode->m_afContinentPosition, pNode);
+}
+
+void aggregatePosition(raaNode *pNode)
+{
+	vecAdd(g_afAggregatedPositions, pNode->m_afPosition, g_afAggregatedPositions);
+}
+
+float* calculateAveragePosition(raaSystem *pSystem)
+{
+	if (!g_fNumberOfNodes) g_fNumberOfNodes = (int) count(&(pSystem->m_llNodes));
+	vecInitDVec(g_afAggregatedPositions); vecInitDVec(g_afAverageNodePosition); // reset all to 0
+
+	visitNodes(pSystem, aggregatePosition); // add up all node positions
+
+	return vecScalarProduct(g_afAggregatedPositions, 1.0f / g_fNumberOfNodes, g_afAverageNodePosition); // return average
+}
+
+void randomisePosition(raaNode *pNode)
+{
+	vecRand(csg_fMinimumNodePosition, csg_fMaximumNodePosition, pNode->m_afPosition);
 }

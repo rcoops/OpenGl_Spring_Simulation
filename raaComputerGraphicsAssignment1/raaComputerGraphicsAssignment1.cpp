@@ -19,10 +19,6 @@
 #include "raaControl.h"
 #include "rpcNodeMovement.h"
 
-float g_afAverageNodePosition[4];
-float g_afAggregatedPositions[4];
-float g_fNumberOfNodes = 0.0f;
-
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
 raaCamera g_Camera; // structure holding the camera position and orientation attributes
@@ -45,7 +41,6 @@ void sKeyboard(int iC, int iXPos, int iYPos); // called for each keyboard press 
 void sKeyboardUp(int iC, int iXPos, int iYPos); // called for each keyboard release with a non ascii key (eg shift)
 void mouse(int iKey, int iEvent, int iXPos, int iYPos); // called for each mouse key event
 void motion(int iXPos, int iYPos); // called for each mouse motion event
-void processMainMenuSelection(int iMenuItem);
 
 // Non glut functions
 void initMenu();
@@ -57,9 +52,7 @@ void nodeTextDisplay(raaNode *pNode);
 void arcDisplay(raaArc *pArc); // called by the display function to draw arcs
 void buildGrid(); // 
 
-float* calculateAveragePosition();
 void aggregatePosition(raaNode *pNode);
-void randomisePosition(raaNode *pNode);
 
 // Node init functions
 void toggleNodeSorting(nodePositioning positioning);
@@ -70,25 +63,6 @@ void initNodeDisplayLists();
 void initNodeDisplayList(raaNode *pNode);
 
 /* POSITIONING */
-
-void aggregatePosition(raaNode *pNode)
-{
-	vecAdd(g_afAggregatedPositions, pNode->m_afPosition, g_afAggregatedPositions);
-}
-
-float* calculateAveragePosition()
-{
-	vecInitDVec(g_afAggregatedPositions); vecInitDVec(g_afAverageNodePosition); // reset all to 0
-
-	visitNodes(&g_System, aggregatePosition); // add up all node positions
-
-	return vecScalarProduct(g_afAggregatedPositions, 1.0f / g_fNumberOfNodes, g_afAverageNodePosition); // return average
-}
-
-void randomisePosition(raaNode *pNode)
-{
-	vecRand(csg_fMinimumNodePosition, csg_fMaximumNodePosition, pNode->m_afPosition);
-}
 
 void toggleNodeSorting(nodePositioning npPositioning)
 {
@@ -170,7 +144,7 @@ void idle() // processing of system and camera data outside of the rendering loo
 	calculateNodeMovement(&g_System);
 	if (g_Camera.m_bIsCentred) // Centre cam on average node position
 	{
-		camCentre(g_Camera, calculateAveragePosition());
+		camCentre(g_Camera, calculateAveragePosition(&g_System));
 	}
 
 	controlChangeResetAll(g_Control); // re-set the update status for all of the control flags
@@ -316,9 +290,6 @@ void myInit()
 	initSystem(&g_System);
 	parse(g_acFile, parseSection, parseNetwork, parseArc, parsePartition, parseVector);
 
-	// Calc average node position for camera centre
-	g_fNumberOfNodes = (float) count(&g_System.m_llNodes);
-
 	// One-time operations for nodes
 	visitNodes(&g_System, setNodeDimensionByWorldOrder);
 	sortNodes(&(g_System.m_llNodes));
@@ -328,12 +299,12 @@ void myInit()
 	camInit(g_Camera); // initalise the camera model
 	camInputInit(g_Input); // initialise the persistant camera input data 
 	camInputExplore(g_Input, true); // define the camera navigation mode
-	camCentre(g_Camera, calculateAveragePosition());
+	camCentre(g_Camera, calculateAveragePosition(&g_System));
 }
 
 void initNodeDisplayLists()
 {
-	if (!gs_uiBaseNodeDisplayListId) gs_uiBaseNodeDisplayListId = glGenLists((int)g_fNumberOfNodes);
+	if (!gs_uiBaseNodeDisplayListId) gs_uiBaseNodeDisplayListId = glGenLists(count(&g_System.m_llNodes));
 	visitNodes(&g_System, initNodeDisplayList);
 }
 
@@ -509,5 +480,6 @@ int main(int argc, char* argv[])
 	// if there isn't a data file 
 	printf("The data file cannot be found, press any key to exit...\n");
 	_getch();
+
 	return 1; // error code
 }

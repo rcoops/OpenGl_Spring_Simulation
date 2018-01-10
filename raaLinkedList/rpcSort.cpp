@@ -45,10 +45,10 @@ raaLinkedListElement *mergeSort(raaLinkedListElement *plleHead)
 	}
 	raaLinkedListElement *plleSecond = split(plleHead); // second half
 
-	plleHead = mergeSort(plleHead);
+	plleHead = mergeSort(plleHead); // recursive call on each half
 	plleSecond = mergeSort(plleSecond);
 
-	return merge(plleHead, plleSecond);
+	return merge(plleHead, plleSecond); 
 }
 
 raaLinkedListElement* split(raaLinkedListElement *plleHead)
@@ -58,17 +58,17 @@ raaLinkedListElement* split(raaLinkedListElement *plleHead)
 	if (plleHead && plleHead->m_pNext)
 	{
 		raaLinkedListElement *plleSlow;
-		raaLinkedListElement *plleFast = plleSlow = plleHead;
+		raaLinkedListElement *plleFast = plleSlow = plleHead; // point everything at the beginning
 
-		while (plleFast->m_pNext && plleFast->m_pNext->m_pNext)
+		while (plleFast->m_pNext && plleFast->m_pNext->m_pNext) // find halfway through the list
 		{
 			plleFast = plleFast->m_pNext->m_pNext;
 			plleSlow = plleSlow->m_pNext;
 		}
 		plleSplit = plleSlow->m_pNext;
-		plleSlow->m_pNext = 0;
+		plleSlow->m_pNext = 0; // last item on end of first half
 	}
-	return plleSplit;
+	return plleSplit; // return the first item on the second half
 }
 
 bool compareNodeMass(raaLinkedListElement *plleA, raaLinkedListElement *plleB)
@@ -80,22 +80,23 @@ raaLinkedListElement* merge(raaLinkedListElement *plleFirst, raaLinkedListElemen
 {
 	if (!plleFirst)
 	{
-		return  plleSecond;
+		return plleSecond;
 	}
 	if (!plleSecond)
 	{
 		return plleFirst;
 	}
-	if(compareNodeMass(plleFirst, plleSecond))
+	if(compareNodeMass(plleFirst, plleSecond)) // if first half head greater mass then second half
 	{
-		plleFirst->m_pNext = merge(plleFirst->m_pNext, plleSecond);
-		plleFirst->m_pNext->m_pLast = plleFirst;
-		plleFirst->m_pLast = 0;
+		plleFirst->m_pNext = merge(plleFirst->m_pNext, plleSecond); // recursive call with next item
+		plleFirst->m_pNext->m_pLast = plleFirst; // reset the chosen 'next' element last pointer to larger element
+		plleFirst->m_pLast = 0; // reset last element to null
 		return plleFirst;
 	}
-	plleSecond->m_pNext = merge(plleFirst, plleSecond->m_pNext);
-	plleSecond->m_pNext->m_pLast = plleSecond;
-	plleSecond->m_pLast = 0;
+	// if second half head greater mass then first half
+	plleSecond->m_pNext = merge(plleFirst, plleSecond->m_pNext); // recursive call with next item
+	plleSecond->m_pNext->m_pLast = plleSecond; // reset the chosen 'next' element last pointer to larger element
+	plleSecond->m_pLast = 0; // reset last element to null
 	return plleSecond;
 }
 
@@ -115,7 +116,7 @@ void assignNodeToCategoryList(unsigned int uiCategory, raaLinkedList *pllSortedL
 {
 	if (pllSortedList && pNode)
 	{
-		// Category can be used as array index for array of category lists
+		// Category can be used as array index for array of category lists as 1 indexed
 		pushTail(&pllSortedList[uiCategory - 1], initElement(new raaLinkedListElement, pNode, csg_uiNode));
 	}
 }
@@ -138,7 +139,6 @@ void setNodePositionBySortedOrder(unsigned int uiNumberOfCategories, raaLinkedLi
 		}
 		destroyList(&pllSortedList[i]); // Free up the memory as list is no longer needed
 	}
-	
 }
 
 void performCategorySort(raaLinkedList *pllOriginalNodeList, unsigned int uiNumberOfCategories, raaLinkedList *pllSortedList, nodeFunction *nfSort)
@@ -158,7 +158,7 @@ void sortNodesByCategory(unsigned int uiCategory, raaLinkedList *pllOriginalNode
 	nodeFunction *nfSort = 0;
 	unsigned int uiNumberOfCategories = 0;
 
-	switch (uiCategory)
+	switch (uiCategory) // choose params based on category
 	{
 	case csg_uiWorldOrdersCategory:
 		pllSortedList = g_pllNodeByWorldOrder;
@@ -172,7 +172,10 @@ void sortNodesByCategory(unsigned int uiCategory, raaLinkedList *pllOriginalNode
 		break;
 	}
 
-	performCategorySort(pllOriginalNodeList, uiNumberOfCategories, pllSortedList, nfSort);
+	if(pllSortedList && nfSort && uiNumberOfCategories)
+	{
+		performCategorySort(pllOriginalNodeList, uiNumberOfCategories, pllSortedList, nfSort); // do the actual sorting
+	}
 }
 
 void sortNodes(raaLinkedList *pllNodeList)
