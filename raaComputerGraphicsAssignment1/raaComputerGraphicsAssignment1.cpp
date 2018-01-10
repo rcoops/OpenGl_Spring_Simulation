@@ -72,7 +72,6 @@ void drawShapeDependentOnWorldSystem(raaNode *pNode);
 void setNodeDimensionByWorldOrder(raaNode *pNode);
 void initNodeDisplayLists();
 void initNodeDisplayList(raaNode *pNode);
-void countNode(raaNode *pNode);
 
 /* POSITIONING */
 
@@ -327,7 +326,7 @@ void myInit()
 
 	// Calc average node position for camera centre
 	vecInitPVec(g_afAverageNodePosition);
-	visitNodes(&g_System, countNode);
+	g_fNumberOfNodes = (float) count(&g_System.m_llNodes);
 	calculateAveragePosition();
 
 	// One-time operations for nodes
@@ -340,11 +339,6 @@ void myInit()
 	camInputInit(g_Input); // initialise the persistant camera input data 
 	camInputExplore(g_Input, true); // define the camera navigation mode
 	camExploreUpdateTargetAndDistance(g_Camera, 150.0f, g_afAverageNodePosition); // Centre camera direction on average node position
-}
-
-void countNode(raaNode *pNode) // pNode not necessary but better to reuse code then another for loop through system
-{
-	g_fNumberOfNodes += 1.0f;
 }
 
 void initNodeDisplayLists()
