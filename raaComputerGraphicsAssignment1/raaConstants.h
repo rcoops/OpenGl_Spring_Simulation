@@ -14,11 +14,12 @@ const static float csg_fFarClip = 10000.0f;
 const static int csg_uiWindowDefinition[] = { 0,0,512,384 };
 const static float csg_fCamAngleSensitivity = 0.0005f;
 const static float csg_fCamLinearSensitivity = 0.2f;
+
 const static float csg_fTimeUnit = 0.016667f; // 1 / 60
 const static float csg_fDampeningCoefficient = 0.99f;
 
-const static unsigned int csg_uiContinents = 6;
-const static unsigned int csg_uiWorldOrders = 3;
+const static unsigned int csg_uiNumberOfContinents = 6;
+const static unsigned int csg_uiNumberOfWorldSystems = 3;
 
 const static unsigned int csg_uiWorldOrdersCategory = 666;
 const static unsigned int csg_uiContinentsCategory = 333;
@@ -34,9 +35,9 @@ const static float csg_afColourTransBrightRed[] = { 1.0f, 0.2f, 0.2f, 0.6f };
 
 const static float csg_afColourClear[] = { 0.6f, 0.7f, 0.8f, 0.7f }; // screen background colour
 
-const static float csg_fLineOpacity = 0.4f;
+const static float csg_fLineOpacity = 0.4f; // Opacity changes appearance of line 'thickness'
 
-// continent colours
+// continent material colours
 const static float csg_afMaterialAfricaColour[] =		{ 1.0f, 0.0f, 0.0f, 1.0f };
 const static float csg_afMaterialAsiaColour[] =			{ 0.0f, 1.0f, 0.0f, 1.0f };
 const static float csg_afMaterialEuropeColour[] =		{ 0.0f, 0.0f, 1.0f, 1.0f };
@@ -44,14 +45,14 @@ const static float csg_afMaterialNorthAmericaColour[] = { 1.0f, 0.0f, 1.0f, 1.0f
 const static float csg_afMaterialOceanaColour[] =		{ 1.0f, 1.0f, 0.0f, 1.0f };
 const static float csg_afMaterialSouthAmericaColour[] = { 0.0f, 1.0f, 1.0f, 1.0f };
 
+const float *constantContinentIndexToMaterialColour(int i);
+
 //control
 const static unsigned int csg_uiControlDrawGrid = 0;
 const static unsigned int csg_uiControlNumFlags = 1;
 
 // parser
 std::string constantContinentIndexToName(int i);
-
-const float *constantContinentIndexToMaterialColour(int i);
 
 const static unsigned int csg_uiParseNetwork = 1;
 const static unsigned int csg_uiParseArcs = 2;
@@ -73,3 +74,5 @@ const static float csg_fDisplayListGridMin = -500.0f;
 const static float csg_fDisplayListGridMax = 500.0f;
 const static float csg_fDisplayListGridSpace = 50.0f;
 static unsigned int gs_uiGridDisplayList = 0;
+
+static unsigned int gs_uiBaseNodeDisplayListId = 0;

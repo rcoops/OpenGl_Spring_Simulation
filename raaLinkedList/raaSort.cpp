@@ -1,7 +1,7 @@
 #include "raaSort.h"
 
-raaLinkedList g_pllNodeByWorldOrder[csg_uiWorldOrders];
-raaLinkedList g_pllNodeByContinent[csg_uiContinents];
+raaLinkedList g_pllNodeByWorldOrder[csg_uiNumberOfWorldSystems];
+raaLinkedList g_pllNodeByContinent[csg_uiNumberOfContinents];
 
 /**
  * Adapted from http://www.geeksforgeeks.org/merge-sort-for-doubly-linked-list/
@@ -130,12 +130,12 @@ void sortNodesByCategory(unsigned int uiCategory, raaLinkedList *pllOriginalNode
 	{
 	case csg_uiWorldOrdersCategory:
 		pllSortedList = g_pllNodeByWorldOrder;
-		uiNumberOfCategories = csg_uiWorldOrders;
+		uiNumberOfCategories = csg_uiNumberOfWorldSystems;
 		nfSort = assignNodeToWorldOrderList;
 		break;
 	case csg_uiContinentsCategory:
 		pllSortedList = g_pllNodeByContinent;
-		uiNumberOfCategories = csg_uiContinents;
+		uiNumberOfCategories = csg_uiNumberOfContinents;
 		nfSort = assignNodeToContinentList;
 		break;
 	}

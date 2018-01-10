@@ -25,13 +25,12 @@
 // You will need to expand the definitions for raaNode and raaArc in the raaSystem library to include additional attributes for the siumulation process
 // If you wish to implement the mouse selection part of the assignment you may find the camProject and camUnProject functions usefull
 
-float g_fMinPos = 1.0f;
-float g_fMaxPos = 770.0f;
-float g_afAvPos[4];
-int g_uiNumberOfNodes = 0;
-int g_iBaseNodeDisplayListId = 0;
+float g_fMinimumNodePosition = 1.0f;
+float g_fMaximumNodePosition = 770.0f;
+float g_afAverageNodePosition[4];
+float g_fNumberOfNodes = 0.0f;
 
-bool g_bCentreCamera = false;
+bool g_bCentreCamera = false; // If true, camera follows and centres on average node position
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
 raaCamera g_Camera; // structure holding the camera position and orientation attributes
@@ -44,19 +43,10 @@ const static char csg_acFileParam[] = { "-input" };
 // global var: file to load data from
 char g_acFile[256];
 
-bool g_bRunSolver = false;
-bool g_bSortByWorldOrder = false;
-bool g_bSortByContinent = false;
-
 enum nodePositioning
 {
-	none,
-	springs,
-	worldOrder,
-	continent
-};
-
-nodePositioning gNodePositioning = none;
+	none, springs, worldOrder, continent
+} g_eNodePositioning = none;
 
 // core functions -> reduce to just the ones needed by glut as pointers to functions to fulfill tasks
 void display(); // The rendering function. This is called once for each frame and you should put rendering code here
@@ -68,6 +58,7 @@ void sKeyboard(int iC, int iXPos, int iYPos); // called for each keyboard press 
 void sKeyboardUp(int iC, int iXPos, int iYPos); // called for each keyboard release with a non ascii key (eg shift)
 void mouse(int iKey, int iEvent, int iXPos, int iYPos); // called for each mouse key event
 void motion(int iXPos, int iYPos); // called for each mouse motion event
+void buildMenu(int iMenuItem);
 
 // Non glut functions
 void myInit(); // the myinit function runs once, before rendering starts and should be used for setup
@@ -77,105 +68,67 @@ void buildGrid(); //
 
 void randomisePositions(raaNode *pNode);
 
-// Node display list functions
+// Node init functions
 void toggleNodeSorting(nodePositioning move);
 void setMaterialColourByContinent(raaNode *pNode);
 void drawShapeDependentOnWorldOrder(raaNode *pNode);
-
+void setNodeDimensionByWorldOrder(raaNode *pNode);
+void initNodeDisplayLists();
 void initNodeDisplayList(raaNode *pNode);
+void countNode(raaNode *pNode);
 
+/* POSITIONING */
 
-void calculateAveragePosition(raaSystem *pSystem)
+void calculateAveragePosition()
 {
-	float fNoOfNodes = 0.0f;
-	float afTotalPositions[4];
-	vecInitDVec(afTotalPositions);
-	if (pSystem)
+	float afTotalPositions[4]; vecInitDVec(afTotalPositions);
+
+	if ((&g_System)->m_llNodes.m_pHead)
 	{
-		for (raaLinkedListElement *pE = pSystem->m_llNodes.m_pHead; pE; pE = pE->m_pNext)
+		for (raaLinkedListElement *pE = (&g_System)->m_llNodes.m_pHead; pE; pE = pE->m_pNext)
 		{
 			if (pE->m_uiType == csg_uiNode && pE->m_pData)
 			{
-				raaNode *pNode = (raaNode*)pE->m_pData;
-				vecAdd(afTotalPositions, pNode->m_afPosition, afTotalPositions);
-				fNoOfNodes += 1.0f;
+				vecAdd(afTotalPositions, ((raaNode*)pE->m_pData)->m_afPosition, afTotalPositions);
 			}
 		}
 	}
-	g_uiNumberOfNodes = (int)fNoOfNodes;
-	vecScalarProduct(afTotalPositions, 1.0f / fNoOfNodes, g_afAvPos);
+	vecScalarProduct(afTotalPositions, 1.0f / g_fNumberOfNodes, g_afAverageNodePosition);
 }
 
 void randomisePositions(raaNode *pNode)
 {
 	//vecScalarProduct(pNode->m_afPosition, 2, pNode->m_afPosition);
-	vecRand(g_fMinPos, g_fMaxPos, pNode->m_afPosition);
+	vecRand(g_fMinimumNodePosition, g_fMaximumNodePosition, pNode->m_afPosition);
 }
+
+void toggleNodeSorting(nodePositioning move)
+{
+	g_bCentreCamera = true; // Centre the camera on average position when sorting
+	g_eNodePositioning = g_eNodePositioning == move ? none : move; // toggle current positioning on/off
+}
+
+/* DISPLAY FUNCTIONS */
 
 void nodeDisplay(raaNode *pNode) // function to render a node (called from display())
 {
 	glPushMatrix();
 	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
-	glCallList(g_iBaseNodeDisplayListId + pNode->m_uiId - 1);
+	glCallList(gs_uiBaseNodeDisplayListId + pNode->m_uiId - 1);
 	glPopMatrix();
 }
 
-void nodeTextDisplay(raaNode *pNode) // function to render a node (called from display())
+void nodeTextDisplay(raaNode *pNode) // function to render node name (called from display())
 {
 	glPushMatrix();
 
-	setMaterialColourByContinent(pNode);
 	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1] + pNode->m_fTextOffset, pNode->m_afPosition[2]);
+	setMaterialColourByContinent(pNode);
 	glMultMatrixf(camRotMatInv(g_Camera));
 	glScalef(10.0f, 10.0f, 1.0f);
 	outlinePrint(pNode->m_acName);
 
 	glPopMatrix();
-}
-
-void setMaterialColourByContinent(raaNode *pNode)
-{
-	const float *cs_pafColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
-	utilitiesColourToMat(cs_pafColour, 2.0f);
-}
-
-void setNodeDimensionByWorldOrder(raaNode *pNode)
-{
-	switch (pNode->m_uiWorldSystem)
-	{
-	case 1:
-		pNode->m_fDimension = mathsRadiusOfSphereFromVolume(pNode->m_fMass);
-		pNode->m_fTextOffset = pNode->m_fDimension + 5.0f;
-		break;
-	case 2:
-		pNode->m_fDimension = mathsDimensionOfCubeFromVolume(pNode->m_fMass);
-		pNode->m_fTextOffset = pNode->m_fDimension / 2.0f + 5.0f;
-		break;
-	case 3:
-		pNode->m_fDimension = mathsRadiusOfConeFromVolume(pNode->m_fMass);
-		pNode->m_fTextOffset = pNode->m_fDimension + 5.0f;
-		break;
-	default: /* If it doesn't have a world system allocation, it's not a country... */;
-	}
-}
-
-void drawShapeDependentOnWorldOrder(raaNode *pNode)
-{
-	switch (pNode->m_uiWorldSystem)
-	{
-	case 1:
-		glutSolidSphere(pNode->m_fDimension, 10, 10);
-		break;
-	case 2:
-		glutSolidCube(pNode->m_fDimension);
-		break;
-	case 3:
-		glTranslatef(0.0f, -pNode->m_fDimension, 0.0f); // Adjust position to allow rotation
-		glRotatef(270.0f, 1.0f, 0.0f, 0.0f);			// Rotate so cone pointing up
-		glutSolidCone(pNode->m_fDimension, pNode->m_fDimension * 2, 10, 10);
-		break;
-	default: /* If it doesn't have a world system allocation, it's not a country... */;
-	}
 }
 
 void arcDisplay(raaArc *pArc) // function to render an arc (called from display())
@@ -194,11 +147,13 @@ void arcDisplay(raaArc *pArc) // function to render an arc (called from display(
 void display()
 {
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // clear the rendering buffers
+		// switch back to modelview mode
+	glMatrixMode(GL_MODELVIEW);
 
 	glLoadIdentity(); // clear the current transformation state
 	glMultMatrixf(camObjMat(g_Camera)); // apply the current camera transform
 
-										// draw the grid if the control flag for it is true	
+	// draw the grid if the control flag for it is true	
 	if (controlActive(g_Control, csg_uiControlDrawGrid)) glCallList(gs_uiGridDisplayList);
 
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
@@ -212,7 +167,6 @@ void display()
 	visitArcs(&g_System, arcDisplay); // loop through all of the arcs and draw them with the arcDisplay function
 	glEnd();
 	glPopAttrib();
-
 	glFlush(); // ensure all the ogl instructions have been processed
 	glutSwapBuffers(); // present the rendered scene to the screen
 }
@@ -220,7 +174,7 @@ void display()
 // processing of system and camera data outside of the renderng loop
 void idle()
 {
-	switch (gNodePositioning)
+	switch (g_eNodePositioning)
 	{
 	case springs:
 		visitNodes(&g_System, resetNodeForce);
@@ -239,8 +193,8 @@ void idle()
 	if (g_bCentreCamera)
 	{
 		// Centre cam on average node position
-		calculateAveragePosition(&g_System);
-		camExploreUpdateTarget(g_Camera, g_afAvPos);
+		calculateAveragePosition();
+		camExploreUpdateTarget(g_Camera, g_afAverageNodePosition);
 	}
 
 	controlChangeResetAll(g_Control); // re-set the update status for all of the control flags
@@ -263,11 +217,7 @@ void reshape(int iWidth, int iHeight)
 	glutPostRedisplay(); // ask glut to update the screen
 }
 
-void toggleNodeSorting(nodePositioning move)
-{
-	g_bCentreCamera = true;
-	gNodePositioning = gNodePositioning == move ? none : move;
-}
+/* CONTROL */
 
 // detect key presses and assign them to actions
 void keyboard(unsigned char c, int iXPos, int iYPos)
@@ -299,10 +249,10 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 		visitNodes(&g_System, randomisePositions);
 		break;
 	case 'b':
-		gNodePositioning = none;
+		g_eNodePositioning = none;
 		break;
 	case 'z':
-		g_bCentreCamera = !g_bCentreCamera;
+		g_bCentreCamera = !g_bCentreCamera; // toggle camera centring
 	default:;//nothing
 	}
 }
@@ -356,6 +306,7 @@ void mouse(int iKey, int iEvent, int iXPos, int iYPos)
 	}
 	else if (iKey == GLUT_MIDDLE_BUTTON)
 	{
+		g_bCentreCamera = false; // Ensure centring is disabled if you want to pan
 		camInputMousePan(g_Input, (iEvent == GLUT_DOWN) ? true : false);
 		if (iEvent == GLUT_DOWN) camInputSetMouseStart(g_Input, iXPos, iYPos);
 	}
@@ -367,11 +318,7 @@ void motion(int iXPos, int iYPos)
 	if (g_Input.m_bMouse || g_Input.m_bMousePan) camInputSetMouseLast(g_Input, iXPos, iYPos);
 }
 
-void initNodeDisplayLists()
-{
-	if (!g_iBaseNodeDisplayListId) g_iBaseNodeDisplayListId = glGenLists(g_uiNumberOfNodes);
-	visitNodes(&g_System, initNodeDisplayList);
-}
+/* INIT */
 
 void myInit()
 {
@@ -397,8 +344,9 @@ void myInit()
 	parse(g_acFile, parseSection, parseNetwork, parseArc, parsePartition, parseVector);
 
 	// Calc average node position for camera centre
-	vecInitPVec(g_afAvPos);
-	calculateAveragePosition(&g_System);
+	vecInitPVec(g_afAverageNodePosition);
+	visitNodes(&g_System, countNode);
+	calculateAveragePosition();
 
 	// One-time operations for nodes
 	visitNodes(&g_System, setNodeDimensionByWorldOrder);
@@ -409,59 +357,71 @@ void myInit()
 	camInit(g_Camera); // initalise the camera model
 	camInputInit(g_Input); // initialise the persistant camera input data 
 	camInputExplore(g_Input, true); // define the camera navigation mode
-	camExploreUpdateTargetAndDistance(g_Camera, 150.0f, g_afAvPos); // Centre camera direction on average node position
+	camExploreUpdateTargetAndDistance(g_Camera, 150.0f, g_afAverageNodePosition); // Centre camera direction on average node position
+}
+
+void countNode(raaNode *pNode) // pNode not necessary but better to reuse code then another for loop through system
+{
+	g_fNumberOfNodes += 1.0f;
+}
+
+void initNodeDisplayLists()
+{
+	if (!gs_uiBaseNodeDisplayListId) gs_uiBaseNodeDisplayListId = glGenLists((int)g_fNumberOfNodes);
+	visitNodes(&g_System, initNodeDisplayList);
+}
+
+void setMaterialColourByContinent(raaNode *pNode)
+{
+	const float *cs_pafColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
+	utilitiesColourToMat(cs_pafColour, 2.0f);
+}
+
+void setNodeDimensionByWorldOrder(raaNode *pNode)
+{
+	switch (pNode->m_uiWorldSystem)
+	{
+	case 1:
+		pNode->m_fDimension = mathsRadiusOfSphereFromVolume(pNode->m_fMass);
+		pNode->m_fTextOffset = pNode->m_fDimension + 5.0f;
+		break;
+	case 2:
+		pNode->m_fDimension = mathsDimensionOfCubeFromVolume(pNode->m_fMass);
+		pNode->m_fTextOffset = pNode->m_fDimension / 2.0f + 5.0f;
+		break;
+	case 3:
+		pNode->m_fDimension = mathsRadiusOfConeFromVolume(pNode->m_fMass);
+		pNode->m_fTextOffset = pNode->m_fDimension + 5.0f;
+		break;
+	default: /* If it doesn't have a world system allocation, it's not a country... */;
+	}
+}
+
+void drawShapeDependentOnWorldOrder(raaNode *pNode)
+{
+	switch (pNode->m_uiWorldSystem)
+	{
+	case 1:
+		glutSolidSphere(pNode->m_fDimension, 10, 10);
+		break;
+	case 2:
+		glutSolidCube(pNode->m_fDimension);
+		break;
+	case 3:
+		glTranslatef(0.0f, -pNode->m_fDimension, 0.0f); // Adjust position to allow rotation
+		glRotatef(270.0f, 1.0f, 0.0f, 0.0f);			// Rotate so cone pointing up
+		glutSolidCone(pNode->m_fDimension, pNode->m_fDimension * 2, 10, 10);
+		break;
+	default: /* If it doesn't have a world system allocation, it's not a country... */;
+	}
 }
 
 void initNodeDisplayList(raaNode *pNode)
 {
-	glNewList(g_iBaseNodeDisplayListId + pNode->m_uiId - 1, GL_COMPILE);
+	glNewList(gs_uiBaseNodeDisplayListId + pNode->m_uiId - 1, GL_COMPILE);
 	setMaterialColourByContinent(pNode);
 	drawShapeDependentOnWorldOrder(pNode);
 	glEndList();
-}
-
-int main(int argc, char* argv[])
-{
-	// check parameters to pull out the path and file name for the data file
-	for (int i = 0; i<argc; i++) if (!strcmp(argv[i], csg_acFileParam)) sprintf_s(g_acFile, "%s", argv[++i]);
-
-
-	if (strlen(g_acFile))
-	{
-		// if there is a data file
-
-		glutInit(&argc, (char**)argv); // start glut (opengl window and rendering manager)
-
-		glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA); // define buffers to use in ogl
-		glutInitWindowPosition(csg_uiWindowDefinition[csg_uiX], csg_uiWindowDefinition[csg_uiY]);  // set rendering window position
-		glutInitWindowSize(csg_uiWindowDefinition[csg_uiWidth], csg_uiWindowDefinition[csg_uiHeight]); // set rendering window size
-		glutCreateWindow("raaAssignment1-2017");  // create rendering window and give it a name
-
-		buildFont(); // setup text rendering (use outline print function to render 3D text
-
-		myInit(); // application specific initialisation
-
-				  // provide glut with callback functions to enact tasks within the event loop
-		glutDisplayFunc(display);
-		glutIdleFunc(idle);
-		glutReshapeFunc(reshape);
-		glutKeyboardFunc(keyboard);
-		glutKeyboardUpFunc(keyboardUp);
-		glutSpecialFunc(sKeyboard);
-		glutSpecialUpFunc(sKeyboardUp);
-		glutMouseFunc(mouse);
-		glutMotionFunc(motion);
-		glutMainLoop(); // start the rendering loop running, this will only ext when the rendering window is closed 
-
-		killFont(); // cleanup the text rendering process
-
-		return 0; // return a null error code to show everything worked
-	}
-	
-	// if there isn't a data file 
-	printf("The data file cannot be found, press any key to exit...\n");
-	_getch();
-	return 1; // error code
 }
 
 void buildGrid()
@@ -488,6 +448,51 @@ void buildGrid()
 	glPopAttrib(); // pop attrib marker (undo switching off lighting)
 
 	glEndList(); // finish recording the displaylist
+}
+
+/* MAIN */
+
+int main(int argc, char* argv[])
+{
+	// check parameters to pull out the path and file name for the data file
+	for (int i = 0; i<argc; i++) if (!strcmp(argv[i], csg_acFileParam)) sprintf_s(g_acFile, "%s", argv[++i]);
+
+	if (strlen(g_acFile))
+	{
+		// if there is a data file
+
+		glutInit(&argc, (char**)argv); // start glut (opengl window and rendering manager)
+
+		glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA); // define buffers to use in ogl
+		glutInitWindowPosition(csg_uiWindowDefinition[csg_uiX], csg_uiWindowDefinition[csg_uiY]);  // set rendering window position
+		glutInitWindowSize(csg_uiWindowDefinition[csg_uiWidth], csg_uiWindowDefinition[csg_uiHeight]); // set rendering window size
+		glutCreateWindow("raaAssignment1-2017 - Cooper, R");  // create rendering window and give it a name
+		initMenu(); // create a menu
+		buildFont(); // setup text rendering (use outline print function to render 3D text
+
+		myInit(); // application specific initialisation
+
+		// provide glut with callback functions to enact tasks within the event loop
+		glutDisplayFunc(display);
+		glutIdleFunc(idle);
+		glutReshapeFunc(reshape);
+		glutKeyboardFunc(keyboard);
+		glutKeyboardUpFunc(keyboardUp);
+		glutSpecialFunc(sKeyboard);
+		glutSpecialUpFunc(sKeyboardUp);
+		glutMouseFunc(mouse);
+		glutMotionFunc(motion);
+		glutMainLoop(); // start the rendering loop running, this will only ext when the rendering window is closed 
+
+		killFont(); // cleanup the text rendering process
+
+		return 0; // return a null error code to show everything worked
+	}
+	
+	// if there isn't a data file 
+	printf("The data file cannot be found, press any key to exit...\n");
+	_getch();
+	return 1; // error code
 }
 
 
