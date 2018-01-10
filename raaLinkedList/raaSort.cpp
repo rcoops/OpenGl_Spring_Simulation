@@ -83,6 +83,8 @@ raaLinkedListElement* merge(raaLinkedListElement *plleFirst, raaLinkedListElemen
 	return plleSecond;
 }
 
+/* end */
+
 void assignNodeToWorldOrderList(raaNode *pNode)
 {
 	assignNodeToCategoryList(pNode->m_uiWorldSystem, g_pllNodeByWorldOrder, pNode);
@@ -107,7 +109,7 @@ void setNodePositionBySortedOrder(unsigned int uiNumberOfCategories, raaLinkedLi
 	for (int i = 0; i < uiNumberOfCategories; ++i)
 	{
 		float fX = 100.0f * (i - 1);
-		float *afPosition;
+		float *afPosition; // No need to initialise - will just point to continent or world order position on node
 		for (raaLinkedListElement *pE = pllSortedList[i].m_pHead; pE; pE = pE->m_pNext)
 		{
 			raaNode *pNode = (raaNode*)pE->m_pData;
@@ -121,11 +123,23 @@ void setNodePositionBySortedOrder(unsigned int uiNumberOfCategories, raaLinkedLi
 	}
 }
 
+void performSort(raaLinkedList *pllOriginalNodeList, unsigned int uiNumberOfCategories, raaLinkedList *pllSortedList, nodeFunction *nfSort)
+{
+	for (int i = 0; i < uiNumberOfCategories; ++i) initList(&(pllSortedList)[i], csg_uiNode);
+
+	visitNodesInList(pllOriginalNodeList, nfSort);
+
+	for (int i = 0; i < uiNumberOfCategories; ++i) mergeSortNodeList(&pllSortedList[i]);
+
+	setNodePositionBySortedOrder(uiNumberOfCategories, pllSortedList);
+}
+
 void sortNodesByCategory(unsigned int uiCategory, raaLinkedList *pllOriginalNodeList)
 {
 	raaLinkedList *pllSortedList = 0;
-	unsigned int uiNumberOfCategories = 0;
 	nodeFunction *nfSort = 0;
+	unsigned int uiNumberOfCategories = 0;
+
 	switch (uiCategory)
 	{
 	case csg_uiWorldOrdersCategory:
@@ -140,35 +154,7 @@ void sortNodesByCategory(unsigned int uiCategory, raaLinkedList *pllOriginalNode
 		break;
 	}
 
-	for (int i = 0; i < uiNumberOfCategories; ++i) initList(&(pllSortedList)[i], csg_uiNode);
-
-	visitNodesInList(pllOriginalNodeList, nfSort);
-
-	for (int i = 0; i < uiNumberOfCategories; ++i) mergeSortNodeList(&pllSortedList[i]);
-
-	setNodePositionBySortedOrder(uiNumberOfCategories, pllSortedList);
-}
-
-void moveToSortedOrder(float *afNewPosition, raaNode *pNode)
-{
-	float vfRoute[4], vfDirection[4];
-	vecInitDVec(vfRoute); vecInitDVec(vfDirection);
-	vecSub(pNode->m_afPosition, afNewPosition, vfRoute); // Calc route from original to target position
-	float fCurrentDistance = vecNormalise(vfRoute, vfDirection); // Calc scalar distance and direction vector
-	if (fCurrentDistance > 1)
-	{
-		vecSub(pNode->m_afPosition, vfDirection, pNode->m_afPosition); // Calc arc length vector
-	}
-}
-
-void moveToWorldOrderPositions(raaNode *pNode)
-{
-	moveToSortedOrder(pNode->m_afWorldOrderPosition, pNode);
-}
-
-void moveToContinentPositions(raaNode *pNode)
-{
-	moveToSortedOrder(pNode->m_afContinentPosition, pNode);
+	performSort(pllOriginalNodeList, uiNumberOfCategories, pllSortedList, nfSort);
 }
 
 void sortNodes(raaLinkedList *pllNodeList)

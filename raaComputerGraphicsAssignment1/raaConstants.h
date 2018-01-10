@@ -76,3 +76,17 @@ const static float csg_fDisplayListGridSpace = 50.0f;
 static unsigned int gs_uiGridDisplayList = 0;
 
 static unsigned int gs_uiBaseNodeDisplayListId = 0;
+
+// menu
+static unsigned int gs_uiPositioningSubMenu = 1;
+
+const enum menuOption
+{
+	positionByContinent,
+	positionByWorldSystem,
+	positionBySpringSolver,
+	positionRandom,
+	pausePositioning,
+	toggleGrid,
+	toggleCamCentre
+};

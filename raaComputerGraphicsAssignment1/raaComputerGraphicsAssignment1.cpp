@@ -46,7 +46,8 @@ char g_acFile[256];
 enum nodePositioning
 {
 	none, springs, worldOrder, continent
-} g_eNodePositioning = none;
+} g_eCurrentNodePositioning = none;
+nodePositioning g_eSavedPreviousPositioning = none;
 
 // core functions -> reduce to just the ones needed by glut as pointers to functions to fulfill tasks
 void display(); // The rendering function. This is called once for each frame and you should put rendering code here
@@ -58,24 +59,34 @@ void sKeyboard(int iC, int iXPos, int iYPos); // called for each keyboard press 
 void sKeyboardUp(int iC, int iXPos, int iYPos); // called for each keyboard release with a non ascii key (eg shift)
 void mouse(int iKey, int iEvent, int iXPos, int iYPos); // called for each mouse key event
 void motion(int iXPos, int iYPos); // called for each mouse motion event
-void buildMenu(int iMenuItem);
+void processMainMenuSelection(int iMenuItem);
 
 // Non glut functions
+void initMenu();
+void processPositioningMenuSelection(int iMenuItem);
+void processMainMenuSelection(int iMenuItem);
 void myInit(); // the myinit function runs once, before rendering starts and should be used for setup
 void nodeDisplay(raaNode *pNode); // callled by the display function to draw nodes
 void arcDisplay(raaArc *pArc); // called by the display function to draw arcs
 void buildGrid(); // 
 
-void randomisePositions(raaNode *pNode);
+void calculateAveragePosition();
+void randomisePosition(raaNode *pNode);
+void pause();
 
 // Node init functions
 void toggleNodeSorting(nodePositioning move);
 void setMaterialColourByContinent(raaNode *pNode);
-void drawShapeDependentOnWorldOrder(raaNode *pNode);
+void drawShapeDependentOnWorldSystem(raaNode *pNode);
 void setNodeDimensionByWorldOrder(raaNode *pNode);
 void initNodeDisplayLists();
 void initNodeDisplayList(raaNode *pNode);
 void countNode(raaNode *pNode);
+
+// Sort movement
+void moveToSortedOrder(float *vfNewPosition, raaNode *pNode);
+void moveToWorldOrderPositions(raaNode *pNode);
+void moveToContinentPositions(raaNode *pNode);
 
 /* POSITIONING */
 
@@ -96,16 +107,38 @@ void calculateAveragePosition()
 	vecScalarProduct(afTotalPositions, 1.0f / g_fNumberOfNodes, g_afAverageNodePosition);
 }
 
-void randomisePositions(raaNode *pNode)
+void randomisePosition(raaNode *pNode)
 {
 	//vecScalarProduct(pNode->m_afPosition, 2, pNode->m_afPosition);
 	vecRand(g_fMinimumNodePosition, g_fMaximumNodePosition, pNode->m_afPosition);
 }
 
+void moveToSortedOrder(float *afNewPosition, raaNode *pNode)
+{
+	float vfRoute[4], vfDirection[4];
+	vecInitDVec(vfRoute); vecInitDVec(vfDirection);
+	vecSub(pNode->m_afPosition, afNewPosition, vfRoute); // Calc route from original to target position
+	float fCurrentDistance = vecNormalise(vfRoute, vfDirection); // Calc scalar distance and direction vector
+	if (fCurrentDistance > 1)
+	{
+		vecSub(pNode->m_afPosition, vfDirection, pNode->m_afPosition); // Calc arc length vector
+	}
+}
+
+void moveToWorldOrderPositions(raaNode *pNode)
+{
+	moveToSortedOrder(pNode->m_afWorldOrderPosition, pNode);
+}
+
+void moveToContinentPositions(raaNode *pNode)
+{
+	moveToSortedOrder(pNode->m_afContinentPosition, pNode);
+}
+
 void toggleNodeSorting(nodePositioning move)
 {
 	g_bCentreCamera = true; // Centre the camera on average position when sorting
-	g_eNodePositioning = g_eNodePositioning == move ? none : move; // toggle current positioning on/off
+	g_eCurrentNodePositioning = g_eCurrentNodePositioning == move ? none : move; // toggle current positioning on/off
 }
 
 /* DISPLAY FUNCTIONS */
@@ -168,13 +201,14 @@ void display()
 	glEnd();
 	glPopAttrib();
 	glFlush(); // ensure all the ogl instructions have been processed
+
 	glutSwapBuffers(); // present the rendered scene to the screen
 }
 
 // processing of system and camera data outside of the renderng loop
 void idle()
 {
-	switch (g_eNodePositioning)
+	switch (g_eCurrentNodePositioning)
 	{
 	case springs:
 		visitNodes(&g_System, resetNodeForce);
@@ -190,9 +224,8 @@ void idle()
 	case none:
 		break;
 	}
-	if (g_bCentreCamera)
+	if (g_bCentreCamera) // Centre cam on average node position
 	{
-		// Centre cam on average node position
 		calculateAveragePosition();
 		camExploreUpdateTarget(g_Camera, g_afAverageNodePosition);
 	}
@@ -200,7 +233,7 @@ void idle()
 	controlChangeResetAll(g_Control); // re-set the update status for all of the control flags
 	camProcessInput(g_Input, g_Camera); // update the camera pos/ori based on changes since last render
 	camResetViewportChanged(g_Camera); // re-set the camera's viwport changed flag after all events have been processed
-	glutPostRedisplay();// ask glut to update the screen
+	glutPostRedisplay(); // ask glut to update the screen
 }
 
 // respond to a change in window position or shape
@@ -246,10 +279,9 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 		toggleNodeSorting(continent);
 		break;
 	case 't':
-		visitNodes(&g_System, randomisePositions);
-		break;
+		visitNodes(&g_System, randomisePosition); // deliberate fallthrough to pause movement
 	case 'b':
-		g_eNodePositioning = none;
+		pause();
 		break;
 	case 'z':
 		g_bCentreCamera = !g_bCentreCamera; // toggle camera centring
@@ -326,6 +358,8 @@ void myInit()
 	
 	initMaths(); // initalise the maths library
 
+	initMenu(); // initialise menu & submenus
+
 	// opengl setup - this is a basic default for all rendering in the render loop
 	glClearColor(csg_afColourClear[0], csg_afColourClear[1], csg_afColourClear[2], csg_afColourClear[3]); // set the window background colour
 	glEnable(GL_DEPTH_TEST); // enables occusion of rendered primatives in the window
@@ -397,7 +431,7 @@ void setNodeDimensionByWorldOrder(raaNode *pNode)
 	}
 }
 
-void drawShapeDependentOnWorldOrder(raaNode *pNode)
+void drawShapeDependentOnWorldSystem(raaNode *pNode)
 {
 	switch (pNode->m_uiWorldSystem)
 	{
@@ -420,7 +454,7 @@ void initNodeDisplayList(raaNode *pNode)
 {
 	glNewList(gs_uiBaseNodeDisplayListId + pNode->m_uiId - 1, GL_COMPILE);
 	setMaterialColourByContinent(pNode);
-	drawShapeDependentOnWorldOrder(pNode);
+	drawShapeDependentOnWorldSystem(pNode);
 	glEndList();
 }
 
@@ -450,6 +484,71 @@ void buildGrid()
 	glEndList(); // finish recording the displaylist
 }
 
+/* MENUS */
+
+void initMenu()
+{
+	gs_uiPositioningSubMenu = glutCreateMenu(processPositioningMenuSelection);
+	glutAddMenuEntry("Position By Continent", positionByContinent);
+	glutAddMenuEntry("Position By World System", positionByWorldSystem);
+	glutAddMenuEntry("Toggle Spring Solver", positionBySpringSolver);
+	glutAddMenuEntry("Randomise Positions", positionRandom);
+	glutAddMenuEntry("Toggle Pause", pausePositioning);
+
+	glutCreateMenu(processMainMenuSelection);
+	glutAddSubMenu("Sort & Solve", gs_uiPositioningSubMenu);
+	glutAddMenuEntry("Toggle Grid View", toggleGrid);
+	glutAddMenuEntry("Toggle Camera Centre", toggleCamCentre);
+	glutAttachMenu(GLUT_RIGHT_BUTTON);
+}
+
+void processPositioningMenuSelection(int iMenuItem)
+{
+	switch (iMenuItem)
+	{
+	case positionByContinent:
+		toggleNodeSorting(continent);
+		break;
+	case positionByWorldSystem:
+		toggleNodeSorting(worldOrder);
+		break;
+	case positionBySpringSolver:
+		toggleNodeSorting(springs);
+		break;
+	case positionRandom:
+		visitNodes(&g_System, randomisePosition); // fall-through to prevent further positioning
+	case pausePositioning:
+		pause();
+		break;
+	}
+}
+
+void processMainMenuSelection(int iMenuItem)
+{
+	switch (iMenuItem)
+	{
+	case toggleGrid:
+		controlToggle(g_Control, csg_uiControlDrawGrid);
+		break;
+	case toggleCamCentre:
+		g_bCentreCamera = !g_bCentreCamera; // toggle camera centring
+		break;
+	}
+}
+
+void pause()
+{
+	if (g_eCurrentNodePositioning == none) // go back to original setting
+	{
+		g_eCurrentNodePositioning = g_eSavedPreviousPositioning;
+	}
+	else // save original setting and wipe
+	{
+		g_eSavedPreviousPositioning = g_eCurrentNodePositioning;
+		g_eCurrentNodePositioning = none;
+	}
+}
+
 /* MAIN */
 
 int main(int argc, char* argv[])
@@ -457,17 +556,15 @@ int main(int argc, char* argv[])
 	// check parameters to pull out the path and file name for the data file
 	for (int i = 0; i<argc; i++) if (!strcmp(argv[i], csg_acFileParam)) sprintf_s(g_acFile, "%s", argv[++i]);
 
-	if (strlen(g_acFile))
+	if (strlen(g_acFile)) // if there is a data file
 	{
-		// if there is a data file
-
 		glutInit(&argc, (char**)argv); // start glut (opengl window and rendering manager)
 
 		glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA); // define buffers to use in ogl
 		glutInitWindowPosition(csg_uiWindowDefinition[csg_uiX], csg_uiWindowDefinition[csg_uiY]);  // set rendering window position
 		glutInitWindowSize(csg_uiWindowDefinition[csg_uiWidth], csg_uiWindowDefinition[csg_uiHeight]); // set rendering window size
 		glutCreateWindow("raaAssignment1-2017 - Cooper, R");  // create rendering window and give it a name
-		initMenu(); // create a menu
+
 		buildFont(); // setup text rendering (use outline print function to render 3D text
 
 		myInit(); // application specific initialisation
@@ -494,39 +591,3 @@ int main(int argc, char* argv[])
 	_getch();
 	return 1; // error code
 }
-
-
-
-
-
-
-/*
-To move mouse pointer in screen to local clip space co-ordinate, need to reverse calculations
-for drawing a vertex on the screen (up until world co-ordinates)
-GLUT_RGBA (255,255,255)
-need to draw filled polygons
-selection buffer start at 3000 and measure how many are being collected then adjust down
-mouse selection 3x3 or 5x5
-still want to strip out everything but polygons on approach 2
-biggest hassle is processing the hit record
-opengl 2 specification tutorials for selection buffer
-glSelectBuffer, glRenderMode GL_SELECT, getNames into selection buffer
-push name 0
-model & projection matrix need to be the same settings as for the screen render
-glMM, glPM, glLI
-gluPickMatrix - camViewPort(g_gCamera window height) MINUS y co-ordinate
-viewport width & height is passed to camera
-glMultMatrixf multiply MMatrix by Projection matrox
-
-need to reset both projection and modelview matrixes after selection
-
-use separate visitNodes function for rendering and selection of nodes
-'unproject' screen co-ordinates into 3d world
-calculate offset vector from hit point and sphere centre
-renderUnProject & renderProject (screen->3d space & 3d space->screen)
-offset and selectionZ are stored as globals
-add offset and mouse pointer position and put it in the node position
-pick matrix & projection matrix need to be right way round
-glutGetModifiers()&GLUT_ACTIVE_SHIFT
-good idea to record node is selected in node itself
-*/

@@ -15,10 +15,5 @@ void assignNodeToWorldOrderList(raaNode *pNode);
 void assignNodeToContinentList(raaNode *pNode);
 void assignNodeToCategoryList(unsigned int uiCategory, raaLinkedList *pllSortedList, raaNode *pNode);
 
-void moveToSortedOrder(float *vfNewPosition, raaNode *pNode);
-
-void moveToWorldOrderPositions(raaNode *pNode);
-
-void moveToContinentPositions(raaNode *pNode);
-
 void sortNodes(raaLinkedList *pllNodeList);
+void performSort(raaLinkedList *pllOriginalNodeList, unsigned int uiNumberOfCategories, raaLinkedList *pllSortedList, nodeFunction *nfSort);
