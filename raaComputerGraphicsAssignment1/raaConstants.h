@@ -24,6 +24,9 @@ const static unsigned int csg_uiNumberOfWorldSystems = 3;
 const static unsigned int csg_uiWorldOrdersCategory = 666;
 const static unsigned int csg_uiContinentsCategory = 333;
 
+const static float csg_fMinimumNodePosition = 1.0f;
+const static float csg_fMaximumNodePosition = 770.0f;
+
 // materials
 const static bool csg_bMaterialEmissiveOn = true;
 const static bool csg_bMaterialEmissiveOff = false;

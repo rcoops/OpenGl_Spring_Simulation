@@ -25,8 +25,6 @@
 // You will need to expand the definitions for raaNode and raaArc in the raaSystem library to include additional attributes for the siumulation process
 // If you wish to implement the mouse selection part of the assignment you may find the camProject and camUnProject functions usefull
 
-float g_fMinimumNodePosition = 1.0f;
-float g_fMaximumNodePosition = 770.0f;
 float g_afAverageNodePosition[4];
 float g_fNumberOfNodes = 0.0f;
 
@@ -109,8 +107,7 @@ void calculateAveragePosition()
 
 void randomisePosition(raaNode *pNode)
 {
-	//vecScalarProduct(pNode->m_afPosition, 2, pNode->m_afPosition);
-	vecRand(g_fMinimumNodePosition, g_fMaximumNodePosition, pNode->m_afPosition);
+	vecRand(csg_fMinimumNodePosition, csg_fMaximumNodePosition, pNode->m_afPosition);
 }
 
 void moveToSortedOrder(float *afNewPosition, raaNode *pNode)

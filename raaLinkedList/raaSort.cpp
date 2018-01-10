@@ -12,7 +12,7 @@ raaLinkedList* mergeSortNodeList(raaLinkedList *pllNodeList)
 	if (pllNodeList && pllNodeList->m_pHead && pllNodeList->m_pHead->m_pNext)
 	{
 		pllNodeList->m_pHead = mergeSort(pllNodeList->m_pHead);
-		// Fudge to reset our tail
+		// Reset our tail
 		for (raaLinkedListElement *pE = pllNodeList->m_pHead; pE; pE = pE->m_pNext)
 		{
 			pllNodeList->m_pTail = pE;
@@ -23,11 +23,11 @@ raaLinkedList* mergeSortNodeList(raaLinkedList *pllNodeList)
 
 raaLinkedListElement *mergeSort(raaLinkedListElement *plleHead)
 {
-	if (!plleHead || !plleHead->m_pNext)
+	if (!plleHead || !plleHead->m_pNext) // One or no items
 	{
 		return plleHead;
 	}
-	raaLinkedListElement *plleSecond = split(plleHead);
+	raaLinkedListElement *plleSecond = split(plleHead); // second half
 
 	plleHead = mergeSort(plleHead);
 	plleSecond = mergeSort(plleSecond);
@@ -125,11 +125,11 @@ void setNodePositionBySortedOrder(unsigned int uiNumberOfCategories, raaLinkedLi
 
 void performSort(raaLinkedList *pllOriginalNodeList, unsigned int uiNumberOfCategories, raaLinkedList *pllSortedList, nodeFunction *nfSort)
 {
-	for (int i = 0; i < uiNumberOfCategories; ++i) initList(&(pllSortedList)[i], csg_uiNode);
+	for (unsigned int i = 0; i < uiNumberOfCategories; ++i) initList(&(pllSortedList)[i], csg_uiNode);
 
 	visitNodesInList(pllOriginalNodeList, nfSort);
 
-	for (int i = 0; i < uiNumberOfCategories; ++i) mergeSortNodeList(&pllSortedList[i]);
+	for (unsigned int i = 0; i < uiNumberOfCategories; ++i) mergeSortNodeList(&pllSortedList[i]);
 
 	setNodePositionBySortedOrder(uiNumberOfCategories, pllSortedList);
 }

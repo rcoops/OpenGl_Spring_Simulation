@@ -26,16 +26,15 @@ void calculateNodeMotion(raaNode *pNode)
 	float vfAcceleration[4], vfDisplacement[4];
 	vecInitDVec(vfAcceleration); vecInitDVec(vfDisplacement);
 
-	// a = f/m
-	vecScalarProduct(pNode->m_vfForce, 1 / pNode->m_fMass, vfAcceleration);
+	vecScalarProduct(pNode->m_vfForce, 1 / pNode->m_fMass, vfAcceleration); // a = f/m
 
 	// s = vt + (at^2)/2
 	for (int i = 0; i < 3; ++i)
 	{
 		vfDisplacement[i] = (pNode->m_vfVelocity[i] * csg_fTimeUnit) + vfAcceleration[i] * pow(csg_fTimeUnit, 2) * 0.5f;
 	}
-	// p' = p + s
-	vecAdd(pNode->m_afPosition, vfDisplacement, pNode->m_afPosition);
+	
+	vecAdd(pNode->m_afPosition, vfDisplacement, pNode->m_afPosition); // p' = p + s
 
 	vecCopy(vecScalarProduct(vfDisplacement, 1.0f / csg_fTimeUnit, vfDisplacement), pNode->m_vfVelocity, 3);
 
