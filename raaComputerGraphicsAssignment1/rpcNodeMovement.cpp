@@ -3,6 +3,18 @@
 nodePositioning g_eCurrentNodePositioning = none;
 nodePositioning g_eSavedPreviousPositioning = none;
 
+/* no need for these functions to be available in other files */
+
+// Spring calc
+void calculateSpringForce(raaArc *pArc);
+void calculateNodeMotion(raaNode *pNode);
+void resetNodeForce(raaNode *pNode);
+
+// Sort movement
+void moveToSortedOrder(float *vfNewPosition, raaNode *pNode);
+void moveToWorldOrderPositions(raaNode *pNode);
+void moveToContinentPositions(raaNode *pNode);
+
 void resetNodeForce(raaNode *pNode)
 {
 	vecInitDVec(pNode->m_vfForce);

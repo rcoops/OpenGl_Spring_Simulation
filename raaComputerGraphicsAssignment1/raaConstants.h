@@ -81,7 +81,8 @@ static unsigned int gs_uiGridDisplayList = 0;
 static unsigned int gs_uiBaseNodeDisplayListId = 0;
 
 // menu
-static unsigned int gs_uiPositioningSubMenu = 1;
+static unsigned int gs_uiMainMenu = 0;
+static unsigned int gs_uiPositioningSubMenu = 0;
 
 const enum menuOption
 {

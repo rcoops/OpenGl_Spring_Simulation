@@ -3,6 +3,22 @@
 raaLinkedList g_pllNodeByWorldOrder[csg_uiNumberOfWorldSystems];
 raaLinkedList g_pllNodeByContinent[csg_uiNumberOfContinents];
 
+/* no need for these functions to be available in other files */
+
+raaLinkedList* mergeSortNodeList(raaLinkedList *pllNodeList);
+raaLinkedListElement *mergeSort(raaLinkedListElement *plleHead);
+raaLinkedListElement* split(raaLinkedListElement *plleHead);
+bool compareNodeMass(raaLinkedListElement *plleA, raaLinkedListElement *plleB);
+raaLinkedListElement* merge(raaLinkedListElement *plleFront, raaLinkedListElement *plleBack);
+
+void assignNodeToWorldOrderList(raaNode *pNode);
+void assignNodeToContinentList(raaNode *pNode);
+void assignNodeToCategoryList(unsigned int uiCategory, raaLinkedList *pllSortedList, raaNode *pNode);
+void performCategorySort(raaLinkedList *pllOriginalNodeList, unsigned int uiNumberOfCategories, raaLinkedList *pllSortedList, nodeFunction *nfSort);
+
+void setNodePositionBySortedOrder(unsigned int uiCategories, raaLinkedList *sortedList);
+void sortNodesByCategory(unsigned int uiCategory, raaLinkedList *pllSortedList);
+
 /**
  * Adapted from http://www.geeksforgeeks.org/merge-sort-for-doubly-linked-list/
  */
@@ -120,18 +136,20 @@ void setNodePositionBySortedOrder(unsigned int uiNumberOfCategories, raaLinkedLi
 			afPosition[1] = fYPosition;
 			afPosition[2] = 300.0f;
 		}
+		destroyList(&pllSortedList[i]); // Free up the memory as list is no longer needed
 	}
+	
 }
 
-void performSort(raaLinkedList *pllOriginalNodeList, unsigned int uiNumberOfCategories, raaLinkedList *pllSortedList, nodeFunction *nfSort)
+void performCategorySort(raaLinkedList *pllOriginalNodeList, unsigned int uiNumberOfCategories, raaLinkedList *pllSortedList, nodeFunction *nfSort)
 {
-	for (unsigned int i = 0; i < uiNumberOfCategories; ++i) initList(&(pllSortedList)[i], csg_uiNode);
+	for (unsigned int i = 0; i < uiNumberOfCategories; ++i) initList(&(pllSortedList)[i], csg_uiNode); // init a linked list for each category
 
-	visitNodesInList(pllOriginalNodeList, nfSort);
+	visitNodesInList(pllOriginalNodeList, nfSort); // sort by category
 
-	for (unsigned int i = 0; i < uiNumberOfCategories; ++i) mergeSortNodeList(&pllSortedList[i]);
+	for (unsigned int i = 0; i < uiNumberOfCategories; ++i) mergeSortNodeList(&pllSortedList[i]); // sort by size
 
-	setNodePositionBySortedOrder(uiNumberOfCategories, pllSortedList);
+	setNodePositionBySortedOrder(uiNumberOfCategories, pllSortedList); // Set the node's position by order in the list
 }
 
 void sortNodesByCategory(unsigned int uiCategory, raaLinkedList *pllOriginalNodeList)
@@ -154,7 +172,7 @@ void sortNodesByCategory(unsigned int uiCategory, raaLinkedList *pllOriginalNode
 		break;
 	}
 
-	performSort(pllOriginalNodeList, uiNumberOfCategories, pllSortedList, nfSort);
+	performCategorySort(pllOriginalNodeList, uiNumberOfCategories, pllSortedList, nfSort);
 }
 
 void sortNodes(raaLinkedList *pllNodeList)

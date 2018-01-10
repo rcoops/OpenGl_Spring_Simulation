@@ -19,12 +19,6 @@
 #include "raaControl.h"
 #include "rpcNodeMovement.h"
 
-// NOTES
-// look should look through the libraries and additional files I have provided to familarise yourselves with the functionallity and code.
-// The data is loaded into the data structure, managed by the linked list library, and defined in the raaSystem library.
-// You will need to expand the definitions for raaNode and raaArc in the raaSystem library to include additional attributes for the siumulation process
-// If you wish to implement the mouse selection part of the assignment you may find the camProject and camUnProject functions usefull
-
 float g_afAverageNodePosition[4];
 float g_afAggregatedPositions[4];
 float g_fNumberOfNodes = 0.0f;
@@ -117,7 +111,6 @@ void nodeDisplay(raaNode *pNode) // function to render a node (called from displ
 
 void nodeTextDisplay(raaNode *pNode) // function to render node name (called from display())
 {
-	
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
 	glPushMatrix();
 
@@ -134,6 +127,7 @@ void nodeTextDisplay(raaNode *pNode) // function to render node name (called fro
 void arcDisplay(raaArc *pArc) // function to render an arc (called from display())
 {
 	glPushMatrix();
+
 	glColor4f(0.0f, 1.0f, 0.0f, csg_fLineOpacity);
 	glVertex3fv(pArc->m_pNode0->m_afPosition);
 
@@ -171,8 +165,7 @@ void display()
 	glutSwapBuffers(); // present the rendered scene to the screen
 }
 
-// processing of system and camera data outside of the renderng loop
-void idle()
+void idle() // processing of system and camera data outside of the rendering loop
 {
 	calculateNodeMovement(&g_System);
 	if (g_Camera.m_bIsCentred) // Centre cam on average node position
@@ -186,8 +179,7 @@ void idle()
 	glutPostRedisplay(); // ask glut to update the screen
 }
 
-// respond to a change in window position or shape
-void reshape(int iWidth, int iHeight)
+void reshape(int iWidth, int iHeight) // respond to a change in window position or shape
 {
 	/* want to know what proportion of the screen (iWidth iHeight) our mouse exists in */
 	glViewport(0, 0, iWidth, iHeight);  // re-size the rendering context to match window
@@ -202,8 +194,7 @@ void reshape(int iWidth, int iHeight)
 
 /* CONTROL */
 
-// detect key presses and assign them to actions
-void keyboard(unsigned char c, int iXPos, int iYPos)
+void keyboard(unsigned char c, int iXPos, int iYPos) // detect key presses and assign them to actions
 {
 	switch (c)
 	{
@@ -239,15 +230,13 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 	}
 }
 
-// detect standard key releases
-void keyboardUp(unsigned char c, int iXPos, int iYPos)
+void keyboardUp(unsigned char c, int iXPos, int iYPos) // detect standard key releases
 {
 	switch (c)
 	{
-		// end the camera zoom action
 	case 'w':
 	case 's':
-		camInputTravel(g_Input, tri_null);
+		camInputTravel(g_Input, tri_null); // end the camera zoom action
 		break;
 	}
 }
@@ -348,10 +337,17 @@ void initNodeDisplayLists()
 	visitNodes(&g_System, initNodeDisplayList);
 }
 
+void initNodeDisplayList(raaNode *pNode)
+{
+	glNewList(gs_uiBaseNodeDisplayListId + pNode->m_uiId - 1, GL_COMPILE);
+	setMaterialColourByContinent(pNode);
+	drawShapeDependentOnWorldSystem(pNode);
+	glEndList();
+}
+
 void setMaterialColourByContinent(raaNode *pNode)
 {
-	const float *cs_pafColour = constantContinentIndexToMaterialColour(pNode->m_uiContinent);
-	utilitiesColourToMat(cs_pafColour, 2.0f);
+	utilitiesColourToMat(constantContinentIndexToMaterialColour(pNode->m_uiContinent), 2.0f);
 }
 
 void setNodeDimensionByWorldOrder(raaNode *pNode)
@@ -393,14 +389,6 @@ void drawShapeDependentOnWorldSystem(raaNode *pNode)
 	}
 }
 
-void initNodeDisplayList(raaNode *pNode)
-{
-	glNewList(gs_uiBaseNodeDisplayListId + pNode->m_uiId - 1, GL_COMPILE);
-	setMaterialColourByContinent(pNode);
-	drawShapeDependentOnWorldSystem(pNode);
-	glEndList();
-}
-
 void buildGrid()
 {
 	if (!gs_uiGridDisplayList) gs_uiGridDisplayList = glGenLists(1); // create a display list
@@ -438,7 +426,7 @@ void initMenu()
 	glutAddMenuEntry("Randomise Positions", positionRandom);
 	glutAddMenuEntry("Toggle Pause", pausePositioning);
 
-	glutCreateMenu(processMainMenuSelection);
+	gs_uiMainMenu = glutCreateMenu(processMainMenuSelection);
 	glutAddSubMenu("Sort & Solve", gs_uiPositioningSubMenu);
 	glutAddMenuEntry("Toggle Grid View", toggleGrid);
 	glutAddMenuEntry("Toggle Camera Centre", toggleCamCentre);
@@ -512,6 +500,8 @@ int main(int argc, char* argv[])
 		glutMainLoop(); // start the rendering loop running, this will only ext when the rendering window is closed 
 
 		killFont(); // cleanup the text rendering process
+		glutDestroyMenu(gs_uiMainMenu);
+		glutDestroyMenu(gs_uiPositioningSubMenu);
 
 		return 0; // return a null error code to show everything worked
 	}
