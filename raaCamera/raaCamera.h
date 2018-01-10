@@ -48,7 +48,11 @@ typedef struct _raaCamera
 	float m_afProjMat[16];
 	int m_aiViewport[4];
 	bool m_bViewportChanged;
+	bool m_bIsCentred;
 } raaCamera;
+
+// cam centre functions
+void camCentre(raaCamera &rCam, float *pfTargetPosition);
 
 // input mode functions
 void camInputInit(raaCameraInput &rInput);

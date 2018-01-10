@@ -28,7 +28,14 @@
 float g_afAverageNodePosition[4];
 float g_fNumberOfNodes = 0.0f;
 
-bool g_bCentreCamera = false; // If true, camera follows and centres on average node position
+//bool g_bCentreCamera = false; // If true, camera follows and centres on average node position
+
+
+
+
+
+
+
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
 raaCamera g_Camera; // structure holding the camera position and orientation attributes
@@ -99,7 +106,7 @@ void randomisePosition(raaNode *pNode)
 
 void toggleNodeSorting(nodePositioning npPositioning)
 {
-	g_bCentreCamera = true; // Centre the camera on average position when sorting
+	g_Camera.m_bIsCentred = true;
 	togglePositioning(npPositioning);
 }
 
@@ -171,10 +178,19 @@ void display()
 void idle()
 {
 	calculateNodeMovement(&g_System);
-	if (g_bCentreCamera) // Centre cam on average node position
+	if (g_Camera.m_bIsCentred) // Centre cam on average node position
 	{
 		calculateAveragePosition();
-		camExploreUpdateTarget(g_Camera, g_afAverageNodePosition);
+		camCentre(g_Camera, g_afAverageNodePosition);
+
+
+
+
+//		camExploreUpdateTarget(g_Camera, g_afAverageNodePosition);
+
+
+
+
 	}
 
 	controlChangeResetAll(g_Control); // re-set the update status for all of the control flags
@@ -231,7 +247,7 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 		pauseMovement();
 		break;
 	case 'z':
-		g_bCentreCamera = !g_bCentreCamera; // toggle camera centring
+		g_Camera.m_bIsCentred = !g_Camera.m_bIsCentred;
 	default:;//nothing
 	}
 }
@@ -285,7 +301,7 @@ void mouse(int iKey, int iEvent, int iXPos, int iYPos)
 	}
 	else if (iKey == GLUT_MIDDLE_BUTTON)
 	{
-		g_bCentreCamera = false; // Ensure centring is disabled if you want to pan
+		g_Camera.m_bIsCentred = false;
 		camInputMousePan(g_Input, (iEvent == GLUT_DOWN) ? true : false);
 		if (iEvent == GLUT_DOWN) camInputSetMouseStart(g_Input, iXPos, iYPos);
 	}
@@ -338,7 +354,7 @@ void myInit()
 	camInit(g_Camera); // initalise the camera model
 	camInputInit(g_Input); // initialise the persistant camera input data 
 	camInputExplore(g_Input, true); // define the camera navigation mode
-	camExploreUpdateTargetAndDistance(g_Camera, 150.0f, g_afAverageNodePosition); // Centre camera direction on average node position
+	camCentre(g_Camera, g_afAverageNodePosition);
 }
 
 void initNodeDisplayLists()
@@ -473,7 +489,20 @@ void processMainMenuSelection(int iMenuItem)
 		controlToggle(g_Control, csg_uiControlDrawGrid);
 		break;
 	case toggleCamCentre:
-		g_bCentreCamera = !g_bCentreCamera; // toggle camera centring
+		g_Camera.m_bIsCentred = !g_Camera.m_bIsCentred;
+
+
+
+
+//		g_bCentreCamera = !g_bCentreCamera; // toggle camera centring
+
+
+
+
+
+
+
+
 		break;
 	}
 }

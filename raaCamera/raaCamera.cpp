@@ -9,6 +9,11 @@
 #include "raaComputerGraphicsAssignment1\raaConstants.h"
 #include <iostream>
 
+void camCentre(raaCamera &rCam, float *pfTargetPosition)
+{
+	camExploreUpdateTarget(rCam, pfTargetPosition); // Centre camera direction on average node position
+}
+
 void camInit( raaCamera &rCam )
 {
 	camReset(rCam);
@@ -32,6 +37,7 @@ void camReset( raaCamera &rCam )
 	rCam.m_bInvChanged = true;
 	rCam.m_bRotChanged = true;
 	rCam.m_bRotInvChanged = true;
+	rCam.m_bIsCentred = false;
 }
 
 void camCopy(raaCamera &rIn, raaCamera &rOut)
@@ -47,6 +53,7 @@ void camCopy(raaCamera &rIn, raaCamera &rOut)
 	rOut.m_bInvChanged = true;
 	rOut.m_bRotChanged = true;
 	rOut.m_bRotInvChanged = true;
+	rOut.m_bIsCentred = rIn.m_bIsCentred;
 }
 
 void camApply( raaCamera &rCam )
