@@ -12,7 +12,7 @@
 #include <raaSystem/raaSystem.h>
 #include <raaPajParser/raaPajParser.h>
 #include <raaText/raaText.h>
-#include <raaLinkedList/raaSort.h>
+#include <raaLinkedList/rpcSort.h>
 
 #include "raaConstants.h"
 #include "raaParse.h"
@@ -41,12 +41,6 @@ const static char csg_acFileParam[] = { "-input" };
 // global var: file to load data from
 char g_acFile[256];
 
-enum nodePositioning
-{
-	none, springs, worldOrder, continent
-} g_eCurrentNodePositioning = none;
-nodePositioning g_eSavedPreviousPositioning = none;
-
 // core functions -> reduce to just the ones needed by glut as pointers to functions to fulfill tasks
 void display(); // The rendering function. This is called once for each frame and you should put rendering code here
 void idle(); // The idle function is called at least once per frame and is where all simulation and operational code should be placed
@@ -70,21 +64,15 @@ void buildGrid(); //
 
 void calculateAveragePosition();
 void randomisePosition(raaNode *pNode);
-void pause();
 
 // Node init functions
-void toggleNodeSorting(nodePositioning move);
+void toggleNodeSorting(nodePositioning positioning);
 void setMaterialColourByContinent(raaNode *pNode);
 void drawShapeDependentOnWorldSystem(raaNode *pNode);
 void setNodeDimensionByWorldOrder(raaNode *pNode);
 void initNodeDisplayLists();
 void initNodeDisplayList(raaNode *pNode);
 void countNode(raaNode *pNode);
-
-// Sort movement
-void moveToSortedOrder(float *vfNewPosition, raaNode *pNode);
-void moveToWorldOrderPositions(raaNode *pNode);
-void moveToContinentPositions(raaNode *pNode);
 
 /* POSITIONING */
 
@@ -110,32 +98,10 @@ void randomisePosition(raaNode *pNode)
 	vecRand(csg_fMinimumNodePosition, csg_fMaximumNodePosition, pNode->m_afPosition);
 }
 
-void moveToSortedOrder(float *afNewPosition, raaNode *pNode)
-{
-	float vfRoute[4], vfDirection[4];
-	vecInitDVec(vfRoute); vecInitDVec(vfDirection);
-	vecSub(pNode->m_afPosition, afNewPosition, vfRoute); // Calc route from original to target position
-	float fCurrentDistance = vecNormalise(vfRoute, vfDirection); // Calc scalar distance and direction vector
-	if (fCurrentDistance > 1)
-	{
-		vecSub(pNode->m_afPosition, vfDirection, pNode->m_afPosition); // Calc arc length vector
-	}
-}
-
-void moveToWorldOrderPositions(raaNode *pNode)
-{
-	moveToSortedOrder(pNode->m_afWorldOrderPosition, pNode);
-}
-
-void moveToContinentPositions(raaNode *pNode)
-{
-	moveToSortedOrder(pNode->m_afContinentPosition, pNode);
-}
-
-void toggleNodeSorting(nodePositioning move)
+void toggleNodeSorting(nodePositioning npPositioning)
 {
 	g_bCentreCamera = true; // Centre the camera on average position when sorting
-	g_eCurrentNodePositioning = g_eCurrentNodePositioning == move ? none : move; // toggle current positioning on/off
+	togglePositioning(npPositioning);
 }
 
 /* DISPLAY FUNCTIONS */
@@ -205,22 +171,7 @@ void display()
 // processing of system and camera data outside of the renderng loop
 void idle()
 {
-	switch (g_eCurrentNodePositioning)
-	{
-	case springs:
-		visitNodes(&g_System, resetNodeForce);
-		visitArcs(&g_System, calculateSpringForce);
-		visitNodes(&g_System, calculateNodeMotion);
-		break;
-	case worldOrder:
-		visitNodes(&g_System, moveToWorldOrderPositions);
-		break;
-	case continent:
-		visitNodes(&g_System, moveToContinentPositions);
-		break;
-	case none:
-		break;
-	}
+	calculateNodeMovement(&g_System);
 	if (g_bCentreCamera) // Centre cam on average node position
 	{
 		calculateAveragePosition();
@@ -278,7 +229,7 @@ void keyboard(unsigned char c, int iXPos, int iYPos)
 	case 't':
 		visitNodes(&g_System, randomisePosition); // deliberate fallthrough to pause movement
 	case 'b':
-		pause();
+		pauseMovement();
 		break;
 	case 'z':
 		g_bCentreCamera = !g_bCentreCamera; // toggle camera centring
@@ -515,7 +466,7 @@ void processPositioningMenuSelection(int iMenuItem)
 	case positionRandom:
 		visitNodes(&g_System, randomisePosition); // fall-through to prevent further positioning
 	case pausePositioning:
-		pause();
+		pauseMovement();
 		break;
 	}
 }
@@ -530,19 +481,6 @@ void processMainMenuSelection(int iMenuItem)
 	case toggleCamCentre:
 		g_bCentreCamera = !g_bCentreCamera; // toggle camera centring
 		break;
-	}
-}
-
-void pause()
-{
-	if (g_eCurrentNodePositioning == none) // go back to original setting
-	{
-		g_eCurrentNodePositioning = g_eSavedPreviousPositioning;
-	}
-	else // save original setting and wipe
-	{
-		g_eSavedPreviousPositioning = g_eCurrentNodePositioning;
-		g_eCurrentNodePositioning = none;
 	}
 }
 

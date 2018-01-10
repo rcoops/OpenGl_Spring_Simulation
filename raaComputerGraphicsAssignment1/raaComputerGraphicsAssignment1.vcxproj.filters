@@ -27,10 +27,10 @@
     <ClCompile Include="raaConstants.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\raaLinkedList\raaSort.cpp">
+    <ClCompile Include="rpcNodeMovement.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rpcNodeMovement.cpp">
+    <ClCompile Include="..\raaLinkedList\rpcSort.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,10 +44,10 @@
     <ClInclude Include="raaParse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\raaLinkedList\raaSort.h">
+    <ClInclude Include="rpcNodeMovement.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="rpcNodeMovement.h">
+    <ClInclude Include="..\raaLinkedList\rpcSort.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
