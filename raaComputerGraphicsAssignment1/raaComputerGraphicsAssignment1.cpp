@@ -26,6 +26,7 @@
 // If you wish to implement the mouse selection part of the assignment you may find the camProject and camUnProject functions usefull
 
 float g_afAverageNodePosition[4];
+float g_afAggregatedPositions[4];
 float g_fNumberOfNodes = 0.0f;
 
 // core system global data
@@ -58,10 +59,12 @@ void processPositioningMenuSelection(int iMenuItem);
 void processMainMenuSelection(int iMenuItem);
 void myInit(); // the myinit function runs once, before rendering starts and should be used for setup
 void nodeDisplay(raaNode *pNode); // callled by the display function to draw nodes
+void nodeTextDisplay(raaNode *pNode);
 void arcDisplay(raaArc *pArc); // called by the display function to draw arcs
 void buildGrid(); // 
 
-void calculateAveragePosition();
+float* calculateAveragePosition();
+void aggregatePosition(raaNode *pNode);
 void randomisePosition(raaNode *pNode);
 
 // Node init functions
@@ -74,21 +77,18 @@ void initNodeDisplayList(raaNode *pNode);
 
 /* POSITIONING */
 
-void calculateAveragePosition()
+void aggregatePosition(raaNode *pNode)
 {
-	float afTotalPositions[4]; vecInitDVec(afTotalPositions);
+	vecAdd(g_afAggregatedPositions, pNode->m_afPosition, g_afAggregatedPositions);
+}
 
-	if ((&g_System)->m_llNodes.m_pHead)
-	{
-		for (raaLinkedListElement *pE = (&g_System)->m_llNodes.m_pHead; pE; pE = pE->m_pNext)
-		{
-			if (pE->m_uiType == csg_uiNode && pE->m_pData)
-			{
-				vecAdd(afTotalPositions, ((raaNode*)pE->m_pData)->m_afPosition, afTotalPositions);
-			}
-		}
-	}
-	vecScalarProduct(afTotalPositions, 1.0f / g_fNumberOfNodes, g_afAverageNodePosition);
+float* calculateAveragePosition()
+{
+	vecInitDVec(g_afAggregatedPositions); vecInitDVec(g_afAverageNodePosition); // reset all to 0
+
+	visitNodes(&g_System, aggregatePosition); // add up all node positions
+
+	return vecScalarProduct(g_afAggregatedPositions, 1.0f / g_fNumberOfNodes, g_afAverageNodePosition); // return average
 }
 
 void randomisePosition(raaNode *pNode)
@@ -107,22 +107,28 @@ void toggleNodeSorting(nodePositioning npPositioning)
 void nodeDisplay(raaNode *pNode) // function to render a node (called from display())
 {
 	glPushMatrix();
+
 	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1], pNode->m_afPosition[2]);
+	nodeTextDisplay(pNode);
 	glCallList(gs_uiBaseNodeDisplayListId + pNode->m_uiId - 1);
+
 	glPopMatrix();
 }
 
 void nodeTextDisplay(raaNode *pNode) // function to render node name (called from display())
 {
+	
+	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
 	glPushMatrix();
 
-	glTranslatef(pNode->m_afPosition[0], pNode->m_afPosition[1] + pNode->m_fTextOffset, pNode->m_afPosition[2]);
+	glTranslatef(0.0f, pNode->m_fTextOffset, 0.0f);
 	setMaterialColourByContinent(pNode);
-	glMultMatrixf(camRotMatInv(g_Camera));
+	glMultMatrixf(camRotMatInv(g_Camera)); // always face cam
 	glScalef(10.0f, 10.0f, 1.0f);
 	outlinePrint(pNode->m_acName);
 
 	glPopMatrix();
+	glPopAttrib();
 }
 
 void arcDisplay(raaArc *pArc) // function to render an arc (called from display())
@@ -152,7 +158,6 @@ void display()
 
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attribute state to enable constrained state changes
 	visitNodes(&g_System, nodeDisplay); // loop through all of the nodes and draw them with the nodeDisplay function
-	visitNodes(&g_System, nodeTextDisplay);
 	glPopAttrib();
 
 	glPushAttrib(GL_ALL_ATTRIB_BITS); // push attrib marker
@@ -172,8 +177,7 @@ void idle()
 	calculateNodeMovement(&g_System);
 	if (g_Camera.m_bIsCentred) // Centre cam on average node position
 	{
-		calculateAveragePosition();
-		camCentre(g_Camera, g_afAverageNodePosition);
+		camCentre(g_Camera, calculateAveragePosition());
 	}
 
 	controlChangeResetAll(g_Control); // re-set the update status for all of the control flags
@@ -324,9 +328,7 @@ void myInit()
 	parse(g_acFile, parseSection, parseNetwork, parseArc, parsePartition, parseVector);
 
 	// Calc average node position for camera centre
-	vecInitPVec(g_afAverageNodePosition);
 	g_fNumberOfNodes = (float) count(&g_System.m_llNodes);
-	calculateAveragePosition();
 
 	// One-time operations for nodes
 	visitNodes(&g_System, setNodeDimensionByWorldOrder);
@@ -337,7 +339,7 @@ void myInit()
 	camInit(g_Camera); // initalise the camera model
 	camInputInit(g_Input); // initialise the persistant camera input data 
 	camInputExplore(g_Input, true); // define the camera navigation mode
-	camCentre(g_Camera, g_afAverageNodePosition);
+	camCentre(g_Camera, calculateAveragePosition());
 }
 
 void initNodeDisplayLists()
