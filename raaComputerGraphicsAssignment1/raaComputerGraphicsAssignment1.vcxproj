@@ -162,14 +162,14 @@
     <ClCompile Include="raaConstants.cpp" />
     <ClCompile Include="raaControl.cpp" />
     <ClCompile Include="raaParse.cpp" />
-    <ClCompile Include="raaSpringCalc.cpp" />
+    <ClCompile Include="rpcNodeMovement.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\raaLinkedList\raaSort.h" />
     <ClInclude Include="raaConstants.h" />
     <ClInclude Include="raaControl.h" />
     <ClInclude Include="raaParse.h" />
-    <ClInclude Include="raaSpringCalc.h" />
+    <ClInclude Include="rpcNodeMovement.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -17,7 +17,7 @@
 #include "raaConstants.h"
 #include "raaParse.h"
 #include "raaControl.h"
-#include "raaSpringCalc.h"
+#include "rpcNodeMovement.h"
 
 // NOTES
 // look should look through the libraries and additional files I have provided to familarise yourselves with the functionallity and code.
