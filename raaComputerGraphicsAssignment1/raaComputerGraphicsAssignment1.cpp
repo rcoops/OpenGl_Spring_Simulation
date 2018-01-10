@@ -28,14 +28,6 @@
 float g_afAverageNodePosition[4];
 float g_fNumberOfNodes = 0.0f;
 
-//bool g_bCentreCamera = false; // If true, camera follows and centres on average node position
-
-
-
-
-
-
-
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
 raaCamera g_Camera; // structure holding the camera position and orientation attributes
@@ -182,15 +174,6 @@ void idle()
 	{
 		calculateAveragePosition();
 		camCentre(g_Camera, g_afAverageNodePosition);
-
-
-
-
-//		camExploreUpdateTarget(g_Camera, g_afAverageNodePosition);
-
-
-
-
 	}
 
 	controlChangeResetAll(g_Control); // re-set the update status for all of the control flags
@@ -490,19 +473,6 @@ void processMainMenuSelection(int iMenuItem)
 		break;
 	case toggleCamCentre:
 		g_Camera.m_bIsCentred = !g_Camera.m_bIsCentred;
-
-
-
-
-//		g_bCentreCamera = !g_bCentreCamera; // toggle camera centring
-
-
-
-
-
-
-
-
 		break;
 	}
 }
