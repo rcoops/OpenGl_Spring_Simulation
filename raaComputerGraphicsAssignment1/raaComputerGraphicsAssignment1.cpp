@@ -32,12 +32,12 @@ const static char csg_acFileParam[] = { "-input" };
 // global var: file to load data from
 char g_acFile[256];
 
-static float gs_fLineOpacity = 0.4f; // Opacity changes appearance of line 'thickness'
+static float gs_fArcOpacity = 0.4f; // Opacity changes appearance of line 'thickness'
 
 bool g_bShowHUD = false;
 
 int g_iFrame = 0, g_iTime, g_iTimeBase = 0;
-char g_acFPS[13];
+char g_acFPS[13], g_acArcOpacity[19], g_acSpeed[16], g_acHUD[80];
 
 // core functions -> reduce to just the ones needed by glut as pointers to functions to fulfill tasks
 void display(); // The rendering function. This is called once for each frame and you should put rendering code here
@@ -62,6 +62,8 @@ void arcDisplay(raaArc *pArc); // called by the display function to draw arcs
 void buildGrid(); // 
 
 void aggregatePosition(raaNode *pNode);
+void calcFPS();
+void alterArcOpacity(float fModifier);
 
 // Node init functions
 void toggleNodeSorting(nodePositioning positioning);
@@ -70,8 +72,6 @@ void drawShapeDependentOnWorldSystem(raaNode *pNode);
 void setNodeDimensionByWorldOrder(raaNode *pNode);
 void initNodeDisplayLists();
 void initNodeDisplayList(raaNode *pNode);
-
-void calcFPS();
 
 /* POSITIONING */
 
@@ -113,10 +113,10 @@ void arcDisplay(raaArc *pArc) // function to render an arc (called from display(
 {
 	glPushMatrix();
 
-	glColor4f(0.0f, 1.0f, 0.0f, gs_fLineOpacity);
+	glColor4f(0.0f, 1.0f, 0.0f, gs_fArcOpacity);
 	glVertex3fv(pArc->m_pNode0->m_afPosition);
 
-	glColor4f(1.0f, 0.0f, 0.0f, gs_fLineOpacity);
+	glColor4f(1.0f, 0.0f, 0.0f, gs_fArcOpacity);
 	glVertex3fv(pArc->m_pNode1->m_afPosition);
 
 	glPopMatrix();
@@ -141,13 +141,17 @@ void hudDisplay()
 	glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
 
 	void *font = GLUT_BITMAP_HELVETICA_18;
+	glRasterPos2i(20, 60);
+	sprintf(g_acArcOpacity, "Arc Thickness: %.1f", gs_fArcOpacity);
+//	strcpy(g_acSpeed, getSpeed());
+	for (char* c = g_acArcOpacity; *c != '\0'; c++) glutBitmapCharacter(font, *c);
+
 	glRasterPos2i(20, 40);
 	for (char* c = g_acFPS; *c != '\0'; c++) glutBitmapCharacter(font, *c);
 
 	glRasterPos2i(20, 20);
-	char speed[16];
-	strcpy(speed, getSpeed());
-	for (char* c = speed; *c != '\0'; c++) glutBitmapCharacter(font, *c);
+	strcpy(g_acSpeed, getSpeed());
+	for (char* c = g_acSpeed; *c != '\0'; c++) glutBitmapCharacter(font, *c);
 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_DEPTH_TEST);
@@ -188,13 +192,13 @@ void display()
 	glutSwapBuffers(); // present the rendered scene to the screen
 }
 
+// tutorial found at http://www.lighthouse3d.com/tutorials/glut-tutorial/frames-per-second/
 void calcFPS()
 {
 	g_iFrame++;
 	g_iTime = glutGet(GLUT_ELAPSED_TIME);
 	if (g_iTime - g_iTimeBase > 1000) {
-		sprintf(g_acFPS, "FPS: %4.2f",
-			g_iFrame * 1000.0f / (g_iTime - g_iTimeBase));
+		sprintf(g_acFPS, "FPS: %4.2f", g_iFrame * 1000.0f / (g_iTime - g_iTimeBase));
 		g_iTimeBase = g_iTime;
 		g_iFrame = 0;
 	}
@@ -229,6 +233,12 @@ void reshape(int iWidth, int iHeight) // respond to a change in window position 
 }
 
 /* CONTROL */
+
+void alterArcOpacity(float fModifier)
+{
+	bool bIsWithinRange = fModifier < 0 && gs_fArcOpacity > 0.2f || fModifier > 0 && gs_fArcOpacity < 1.0f;
+	if (bIsWithinRange) gs_fArcOpacity += fModifier;
+}
 
 void keyboard(unsigned char c, int iXPos, int iYPos) // detect key presses and assign them to actions
 {
@@ -270,6 +280,12 @@ void keyboard(unsigned char c, int iXPos, int iYPos) // detect key presses and a
 		break;
 	case 'h':
 		g_bShowHUD = !g_bShowHUD;
+		break;
+	case 'y':
+		alterArcOpacity(csg_fArcOpacityModifier);
+		break;
+	case 'u':
+		alterArcOpacity(-1.0f * csg_fArcOpacityModifier);
 		break;
 	default:;//nothing
 	}
@@ -355,6 +371,8 @@ void initMenu()
 	glutAddMenuEntry("Toggle Grid View (g)", toggleGrid);
 	glutAddMenuEntry("Toggle Camera Centre (z)", toggleCamCentre);
 	glutAddMenuEntry("Toggle HUD (h)", toggleHud);
+	glutAddMenuEntry("Increase Arc Thickness (y)", increaseArcThickness);
+	glutAddMenuEntry("Decrease Arc Thickness (u)", decreaseArcThickness);
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
@@ -404,6 +422,12 @@ void processMainMenuSelection(int iMenuItem)
 		break;
 	case toggleHud:
 		g_bShowHUD = !g_bShowHUD;
+		break;
+	case increaseArcThickness:
+		alterArcOpacity(csg_fArcOpacityModifier);
+		break;
+	case decreaseArcThickness:
+		alterArcOpacity(-1.0f * csg_fArcOpacityModifier);
 		break;
 	}
 }

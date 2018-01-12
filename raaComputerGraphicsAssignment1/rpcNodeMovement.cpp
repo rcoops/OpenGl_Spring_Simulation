@@ -161,19 +161,12 @@ void pauseMovement()
 
 void increaseMovementSpeed()
 {
-	if (g_fSpeedMultiplier < csg_fMaxSpeed)
-	{
-		g_fSpeedMultiplier = g_fSpeedMultiplier * csg_fSpeedMultiplier;
-	}
+	if (g_fSpeedMultiplier < csg_fMaxSpeed) g_fSpeedMultiplier = g_fSpeedMultiplier * csg_fSpeedMultiplier;
 }
 
 void decreaseMovementSpeed()
 {
-	if (g_fSpeedMultiplier > csg_fMinSpeed)
-	{
-		g_fSpeedMultiplier = g_fSpeedMultiplier / csg_fSpeedMultiplier;
-	}
-
+	if (g_fSpeedMultiplier > csg_fMinSpeed) g_fSpeedMultiplier = g_fSpeedMultiplier / csg_fSpeedMultiplier;
 }
 
 void randomisePosition(raaNode *pNode)
