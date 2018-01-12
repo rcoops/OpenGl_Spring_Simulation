@@ -131,7 +131,7 @@ void hudDisplay()
 	glPushMatrix();
 
 	glLoadIdentity();
-	glOrtho(0, glutGet(GLUT_WINDOW_WIDTH), 0, glutGet(GLUT_WINDOW_HEIGHT), -1, 1);
+	glOrtho(0, glutGet(GLUT_WINDOW_WIDTH), 0, glutGet(GLUT_WINDOW_HEIGHT), -1, 1); // move projection to window size
 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
