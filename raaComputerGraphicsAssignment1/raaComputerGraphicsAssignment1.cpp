@@ -37,7 +37,7 @@ static float gs_fArcOpacity = 0.4f; // Opacity changes appearance of line 'thick
 bool g_bShowHUD = false;
 
 int g_iFrame = 0, g_iTime, g_iTimeBase = 0;
-char g_acFPS[13], g_acArcOpacity[19], g_acSpeed[16], g_acHUD[80];
+char g_acFPS[13], g_acArcOpacity[19], g_acSpeed[16];
 
 // core functions -> reduce to just the ones needed by glut as pointers to functions to fulfill tasks
 void display(); // The rendering function. This is called once for each frame and you should put rendering code here
@@ -64,6 +64,7 @@ void buildGrid(); //
 void aggregatePosition(raaNode *pNode);
 void calcFPS();
 void alterArcOpacity(float fModifier);
+void alterSpeed(menuOption option);
 
 // Node init functions
 void toggleNodeSorting(nodePositioning positioning);
@@ -139,18 +140,15 @@ void hudDisplay()
 	glDisable(GL_LIGHTING);
 
 	glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
-
 	void *font = GLUT_BITMAP_HELVETICA_18;
+
 	glRasterPos2i(20, 60);
-	sprintf(g_acArcOpacity, "Arc Thickness: %.1f", gs_fArcOpacity);
-//	strcpy(g_acSpeed, getSpeed());
 	for (char* c = g_acArcOpacity; *c != '\0'; c++) glutBitmapCharacter(font, *c);
 
 	glRasterPos2i(20, 40);
 	for (char* c = g_acFPS; *c != '\0'; c++) glutBitmapCharacter(font, *c);
 
 	glRasterPos2i(20, 20);
-	strcpy(g_acSpeed, getSpeed());
 	for (char* c = g_acSpeed; *c != '\0'; c++) glutBitmapCharacter(font, *c);
 
 	glEnable(GL_LIGHTING);
@@ -238,6 +236,14 @@ void alterArcOpacity(float fModifier)
 {
 	bool bIsWithinRange = fModifier < 0 && gs_fArcOpacity > 0.2f || fModifier > 0 && gs_fArcOpacity < 1.0f;
 	if (bIsWithinRange) gs_fArcOpacity += fModifier;
+
+	sprintf(g_acArcOpacity, "Arc Thickness: %.1f", gs_fArcOpacity);
+}
+
+void alterSpeed(menuOption option)
+{
+	float fCurrentSpeed = option == increaseSpeed ? increaseMovementSpeed() : decreaseMovementSpeed();
+	sprintf(g_acSpeed, "Speed Multiplier: %.3fx", fCurrentSpeed);
 }
 
 void keyboard(unsigned char c, int iXPos, int iYPos) // detect key presses and assign them to actions
@@ -273,10 +279,10 @@ void keyboard(unsigned char c, int iXPos, int iYPos) // detect key presses and a
 	case 'z':
 		g_Camera.m_bIsCentred = !g_Camera.m_bIsCentred;
 	case '+':
-		increaseMovementSpeed();
+		alterSpeed(increaseSpeed);
 		break;
 	case '-':
-		decreaseMovementSpeed();
+		alterSpeed(decreaseSpeed);
 		break;
 	case 'h':
 		g_bShowHUD = !g_bShowHUD;
@@ -381,10 +387,8 @@ void processMovementMenuSelection(int iMenuItem)
 	switch (iMenuItem)
 	{
 	case increaseSpeed:
-		increaseMovementSpeed();
-		break;
 	case decreaseSpeed:
-		decreaseMovementSpeed();
+		alterSpeed((menuOption) iMenuItem);
 		break;
 	case positionRandom:
 		visitNodes(&g_System, randomisePosition); // fall-through to prevent further positioning
@@ -463,6 +467,10 @@ void myInit()
 	visitNodes(&g_System, setNodeDimensionByWorldOrder);
 	sortNodes(&(g_System.m_llNodes));
 	initNodeDisplayLists();
+
+	// Set up display strings for hud
+	sprintf(g_acArcOpacity, "Arc Thickness: %.1f", gs_fArcOpacity);
+	sprintf(g_acSpeed, "Speed Multiplier: %.3fx", increaseMovementSpeed());
 
 	// Camera setup
 	camInit(g_Camera); // initalise the camera model

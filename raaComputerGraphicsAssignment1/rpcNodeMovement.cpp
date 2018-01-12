@@ -6,7 +6,7 @@ nodePositioning g_eSavedPreviousPositioning = none;
 float g_afAverageNodePosition[4];
 float g_afAggregatedPositions[4];
 float g_fNumberOfNodes = 0.0f;
-float g_fSpeedMultiplier = 1.0f;
+float g_fSpeedMultiplier = 0.5f;
 
 /* no need for these functions to be available in other files */
 
@@ -124,7 +124,7 @@ void moveToContinentPositions(raaNode *pNode)
 
 void aggregatePosition(raaNode *pNode)
 {
-	vecAdd(g_afAggregatedPositions, pNode->m_afPosition, g_afAggregatedPositions);
+	vecAdd(g_afAggregatedPositions, pNode->m_afPosition, g_afAggregatedPositions); // add the node's position to a global so it can be later averaged
 }
 
 float* calculateAveragePosition(raaSystem *pSystem)
@@ -139,13 +139,6 @@ float* calculateAveragePosition(raaSystem *pSystem)
 
 /* MOVEMENT CONTROL */
 
-char* getSpeed()
-{
-	char sSpeed[16];
-	sprintf(sSpeed, "Speed: x%.3f\n", g_fSpeedMultiplier);
-	return sSpeed;
-}
-
 void pauseMovement()
 {
 	if (g_eCurrentNodePositioning == none) // go back to original setting
@@ -159,14 +152,16 @@ void pauseMovement()
 	}
 }
 
-void increaseMovementSpeed()
+float increaseMovementSpeed()
 {
 	if (g_fSpeedMultiplier < csg_fMaxSpeed) g_fSpeedMultiplier = g_fSpeedMultiplier * csg_fSpeedMultiplier;
+	return g_fSpeedMultiplier;
 }
 
-void decreaseMovementSpeed()
+float decreaseMovementSpeed()
 {
 	if (g_fSpeedMultiplier > csg_fMinSpeed) g_fSpeedMultiplier = g_fSpeedMultiplier / csg_fSpeedMultiplier;
+	return g_fSpeedMultiplier;
 }
 
 void randomisePosition(raaNode *pNode)
