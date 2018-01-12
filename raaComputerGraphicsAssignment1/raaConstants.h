@@ -38,8 +38,6 @@ const static float csg_afColourTransBrightRed[] = { 1.0f, 0.2f, 0.2f, 0.6f };
 
 const static float csg_afColourClear[] = { 0.6f, 0.7f, 0.8f, 0.7f }; // screen background colour
 
-const static float csg_fLineOpacity = 0.4f; // Opacity changes appearance of line 'thickness'
-
 // continent material colours
 const static float csg_afMaterialAfricaColour[] =		{ 1.0f, 0.0f, 0.0f, 1.0f };
 const static float csg_afMaterialAsiaColour[] =			{ 0.0f, 1.0f, 0.0f, 1.0f };
@@ -82,15 +80,27 @@ static unsigned int gs_uiBaseNodeDisplayListId = 0;
 
 // menu
 static unsigned int gs_uiMainMenu = 0;
-static unsigned int gs_uiPositioningSubMenu = 0;
+static unsigned int gs_uiSortingSubMenu = 0;
+static unsigned int gs_uiMovementMenu = 0;
 
 const enum menuOption
 {
 	positionByContinent,
 	positionByWorldSystem,
 	positionBySpringSolver,
+
 	positionRandom,
 	pausePositioning,
+	increaseSpeed,
+	decreaseSpeed,
+
 	toggleGrid,
-	toggleCamCentre
+	toggleCamCentre,
+	toggleHud
 };
+
+// move multipliers
+
+const static float csg_fMinSpeed = 0.125f;
+const static float csg_fMaxSpeed = 8.0f;
+const static float csg_fSpeedMultiplier = 2.0f;

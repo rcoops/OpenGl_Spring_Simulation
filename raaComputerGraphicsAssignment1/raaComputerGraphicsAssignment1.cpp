@@ -18,6 +18,7 @@
 #include "raaParse.h"
 #include "raaControl.h"
 #include "rpcNodeMovement.h"
+#include <ctime>
 
 // core system global data
 raaCameraInput g_Input; // structure to hadle input to the camera comming from mouse/keyboard events
@@ -30,6 +31,13 @@ const static char csg_acFileParam[] = { "-input" };
 
 // global var: file to load data from
 char g_acFile[256];
+
+static float gs_fLineOpacity = 0.4f; // Opacity changes appearance of line 'thickness'
+
+bool g_bShowHUD = false;
+
+int g_iFrame = 0, g_iTime, g_iTimeBase = 0;
+char g_acFPS[13];
 
 // core functions -> reduce to just the ones needed by glut as pointers to functions to fulfill tasks
 void display(); // The rendering function. This is called once for each frame and you should put rendering code here
@@ -44,7 +52,8 @@ void motion(int iXPos, int iYPos); // called for each mouse motion event
 
 // Non glut functions
 void initMenu();
-void processPositioningMenuSelection(int iMenuItem);
+void processSortingMenuSelection(int iMenuItem);
+void processMovementMenuSelection(int iMenuItem);
 void processMainMenuSelection(int iMenuItem);
 void myInit(); // the myinit function runs once, before rendering starts and should be used for setup
 void nodeDisplay(raaNode *pNode); // callled by the display function to draw nodes
@@ -61,6 +70,8 @@ void drawShapeDependentOnWorldSystem(raaNode *pNode);
 void setNodeDimensionByWorldOrder(raaNode *pNode);
 void initNodeDisplayLists();
 void initNodeDisplayList(raaNode *pNode);
+
+void calcFPS();
 
 /* POSITIONING */
 
@@ -102,12 +113,47 @@ void arcDisplay(raaArc *pArc) // function to render an arc (called from display(
 {
 	glPushMatrix();
 
-	glColor4f(0.0f, 1.0f, 0.0f, csg_fLineOpacity);
+	glColor4f(0.0f, 1.0f, 0.0f, gs_fLineOpacity);
 	glVertex3fv(pArc->m_pNode0->m_afPosition);
 
-	glColor4f(1.0f, 0.0f, 0.0f, csg_fLineOpacity);
+	glColor4f(1.0f, 0.0f, 0.0f, gs_fLineOpacity);
 	glVertex3fv(pArc->m_pNode1->m_afPosition);
 
+	glPopMatrix();
+}
+
+
+// tutorial found at http://www.openglprojects.in/2012/04/tutorial-how-to-display-strings-in.html#gsc.tab=0
+void hudDisplay()
+{
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+
+	glLoadIdentity();
+	glOrtho(0, glutGet(GLUT_WINDOW_WIDTH), 0, glutGet(GLUT_WINDOW_HEIGHT), -1, 1);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_LIGHTING);
+
+	glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+
+	void *font = GLUT_BITMAP_HELVETICA_18;
+	glRasterPos2i(20, 40);
+	for (char* c = g_acFPS; *c != '\0'; c++) glutBitmapCharacter(font, *c);
+
+	glRasterPos2i(20, 20);
+	char speed[16];
+	strcpy(speed, getSpeed());
+	for (char* c = speed; *c != '\0'; c++) glutBitmapCharacter(font, *c);
+
+	glEnable(GL_LIGHTING);
+	glEnable(GL_DEPTH_TEST);
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 }
 
@@ -134,13 +180,29 @@ void display()
 	visitArcs(&g_System, arcDisplay); // loop through all of the arcs and draw them with the arcDisplay function
 	glEnd();
 	glPopAttrib();
+
+	if (g_bShowHUD) hudDisplay();
+
 	glFlush(); // ensure all the ogl instructions have been processed
 
 	glutSwapBuffers(); // present the rendered scene to the screen
 }
 
+void calcFPS()
+{
+	g_iFrame++;
+	g_iTime = glutGet(GLUT_ELAPSED_TIME);
+	if (g_iTime - g_iTimeBase > 1000) {
+		sprintf(g_acFPS, "FPS: %4.2f",
+			g_iFrame * 1000.0f / (g_iTime - g_iTimeBase));
+		g_iTimeBase = g_iTime;
+		g_iFrame = 0;
+	}
+}
+
 void idle() // processing of system and camera data outside of the rendering loop
 {
+	calcFPS();
 	calculateNodeMovement(&g_System);
 	if (g_Camera.m_bIsCentred) // Centre cam on average node position
 	{
@@ -200,6 +262,15 @@ void keyboard(unsigned char c, int iXPos, int iYPos) // detect key presses and a
 		break;
 	case 'z':
 		g_Camera.m_bIsCentred = !g_Camera.m_bIsCentred;
+	case '+':
+		increaseMovementSpeed();
+		break;
+	case '-':
+		decreaseMovementSpeed();
+		break;
+	case 'h':
+		g_bShowHUD = !g_bShowHUD;
+		break;
 	default:;//nothing
 	}
 }
@@ -261,6 +332,80 @@ void motion(int iXPos, int iYPos)
 {
 	// if mouse is in a mode that tracks motion pass this to the camera model
 	if (g_Input.m_bMouse || g_Input.m_bMousePan) camInputSetMouseLast(g_Input, iXPos, iYPos);
+}
+
+/* MENUS */
+
+void initMenu()
+{
+	gs_uiSortingSubMenu = glutCreateMenu(processSortingMenuSelection);
+	glutAddMenuEntry("Position By Continent (m)", positionByContinent);
+	glutAddMenuEntry("Position By World System (n)", positionByWorldSystem);
+	glutAddMenuEntry("Toggle Spring Solver (r)", positionBySpringSolver);
+
+	gs_uiMovementMenu = glutCreateMenu(processMovementMenuSelection);
+	glutAddMenuEntry("Randomise Positions (t)", positionRandom);
+	glutAddMenuEntry("Increase Movement Speed (+)", increaseSpeed);
+	glutAddMenuEntry("Decrease Movement Speed (-)", decreaseSpeed);
+	glutAddMenuEntry("Toggle Pause (b)", pausePositioning);
+
+	gs_uiMainMenu = glutCreateMenu(processMainMenuSelection);
+	glutAddSubMenu("Sort & Solve", gs_uiSortingSubMenu);
+	glutAddSubMenu("Movement Controls", gs_uiMovementMenu);
+	glutAddMenuEntry("Toggle Grid View (g)", toggleGrid);
+	glutAddMenuEntry("Toggle Camera Centre (z)", toggleCamCentre);
+	glutAddMenuEntry("Toggle HUD (h)", toggleHud);
+	glutAttachMenu(GLUT_RIGHT_BUTTON);
+}
+
+void processMovementMenuSelection(int iMenuItem)
+{
+	switch (iMenuItem)
+	{
+	case increaseSpeed:
+		increaseMovementSpeed();
+		break;
+	case decreaseSpeed:
+		decreaseMovementSpeed();
+		break;
+	case positionRandom:
+		visitNodes(&g_System, randomisePosition); // fall-through to prevent further positioning
+	case pausePositioning:
+		pauseMovement();
+		break;
+	}
+}
+
+void processSortingMenuSelection(int iMenuItem)
+{
+	switch (iMenuItem)
+	{
+	case positionByContinent:
+		toggleNodeSorting(continent);
+		break;
+	case positionByWorldSystem:
+		toggleNodeSorting(worldOrder);
+		break;
+	case positionBySpringSolver:
+		toggleNodeSorting(springs);
+		break;
+	}
+}
+
+void processMainMenuSelection(int iMenuItem)
+{
+	switch (iMenuItem)
+	{
+	case toggleGrid:
+		controlToggle(g_Control, csg_uiControlDrawGrid);
+		break;
+	case toggleCamCentre:
+		g_Camera.m_bIsCentred = !g_Camera.m_bIsCentred;
+		break;
+	case toggleHud:
+		g_bShowHUD = !g_bShowHUD;
+		break;
+	}
 }
 
 /* INIT */
@@ -386,58 +531,6 @@ void buildGrid()
 	glEndList(); // finish recording the displaylist
 }
 
-/* MENUS */
-
-void initMenu()
-{
-	gs_uiPositioningSubMenu = glutCreateMenu(processPositioningMenuSelection);
-	glutAddMenuEntry("Position By Continent", positionByContinent);
-	glutAddMenuEntry("Position By World System", positionByWorldSystem);
-	glutAddMenuEntry("Toggle Spring Solver", positionBySpringSolver);
-	glutAddMenuEntry("Randomise Positions", positionRandom);
-	glutAddMenuEntry("Toggle Pause", pausePositioning);
-
-	gs_uiMainMenu = glutCreateMenu(processMainMenuSelection);
-	glutAddSubMenu("Sort & Solve", gs_uiPositioningSubMenu);
-	glutAddMenuEntry("Toggle Grid View", toggleGrid);
-	glutAddMenuEntry("Toggle Camera Centre", toggleCamCentre);
-	glutAttachMenu(GLUT_RIGHT_BUTTON);
-}
-
-void processPositioningMenuSelection(int iMenuItem)
-{
-	switch (iMenuItem)
-	{
-	case positionByContinent:
-		toggleNodeSorting(continent);
-		break;
-	case positionByWorldSystem:
-		toggleNodeSorting(worldOrder);
-		break;
-	case positionBySpringSolver:
-		toggleNodeSorting(springs);
-		break;
-	case positionRandom:
-		visitNodes(&g_System, randomisePosition); // fall-through to prevent further positioning
-	case pausePositioning:
-		pauseMovement();
-		break;
-	}
-}
-
-void processMainMenuSelection(int iMenuItem)
-{
-	switch (iMenuItem)
-	{
-	case toggleGrid:
-		controlToggle(g_Control, csg_uiControlDrawGrid);
-		break;
-	case toggleCamCentre:
-		g_Camera.m_bIsCentred = !g_Camera.m_bIsCentred;
-		break;
-	}
-}
-
 /* MAIN */
 
 int main(int argc, char* argv[])
@@ -472,7 +565,8 @@ int main(int argc, char* argv[])
 
 		killFont(); // cleanup the text rendering process
 		glutDestroyMenu(gs_uiMainMenu);
-		glutDestroyMenu(gs_uiPositioningSubMenu);
+		glutDestroyMenu(gs_uiMovementMenu);
+		glutDestroyMenu(gs_uiSortingSubMenu);
 
 		return 0; // return a null error code to show everything worked
 	}

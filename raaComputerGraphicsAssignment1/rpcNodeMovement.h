@@ -18,3 +18,8 @@ void pauseMovement();
 
 float* calculateAveragePosition(raaSystem *pSystem);
 void randomisePosition(raaNode *pNode);
+
+void increaseMovementSpeed();
+void decreaseMovementSpeed();
+
+char* getSpeed();
