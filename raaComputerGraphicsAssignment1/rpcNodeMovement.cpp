@@ -17,8 +17,9 @@ void resetNodeForce(raaNode *pNode);
 
 // Sort movement
 void moveToSortedOrder(float *vfNewPosition, raaNode *pNode);
-void moveToWorldOrderPositions(raaNode *pNode);
+void moveToWorldSystemPositions(raaNode *pNode);
 void moveToContinentPositions(raaNode *pNode);
+void moveToWorldSystem1980Positions(raaNode *pNode);
 
 void aggregatePosition(raaNode *pNode);
 
@@ -38,12 +39,14 @@ void calculateNodeMovement(raaSystem *pSystem)
 		visitArcs(pSystem, calculateSpringForce);
 		visitNodes(pSystem, calculateNodeMotion);
 		break;
-	case worldOrder:
-		visitNodes(pSystem, moveToWorldOrderPositions);
+	case worldSystem:
+		visitNodes(pSystem, moveToWorldSystemPositions);
 		break;
 	case continent:
 		visitNodes(pSystem, moveToContinentPositions);
 		break;
+	case worldSystem1980:
+		visitNodes(pSystem, moveToWorldSystem1980Positions);
 	case none:
 		break;
 	}
@@ -112,9 +115,14 @@ void moveToSortedOrder(float *afNewPosition, raaNode *pNode)
 	}
 }
 
-void moveToWorldOrderPositions(raaNode *pNode)
+void moveToWorldSystem1980Positions(raaNode *pNode)
 {
-	moveToSortedOrder(pNode->m_afWorldOrderPosition, pNode);
+	moveToSortedOrder(pNode->m_afWorldSystem1980Position, pNode);
+}
+
+void moveToWorldSystemPositions(raaNode *pNode)
+{
+	moveToSortedOrder(pNode->m_afWorldSystemPosition, pNode);
 }
 
 void moveToContinentPositions(raaNode *pNode)

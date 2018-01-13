@@ -24,11 +24,13 @@ typedef struct _raaNode
 	float m_fTextOffset;
 	unsigned int m_uiContinent;
 	unsigned int m_uiWorldSystem;
+	unsigned int m_uiWorldSystem1980;
 	char m_acName[64];
 	float m_vfForce[4];
 	float m_vfVelocity[4];
 	float m_afContinentPosition[4];
-	float m_afWorldOrderPosition[4];
+	float m_afWorldSystemPosition[4];
+	float m_afWorldSystem1980Position[4];
 } raaNode;
 
 typedef struct _raaArc

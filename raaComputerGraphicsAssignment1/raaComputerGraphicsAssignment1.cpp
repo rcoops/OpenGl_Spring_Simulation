@@ -37,7 +37,7 @@ static float gs_fArcOpacity = 0.4f; // Opacity changes appearance of line 'thick
 bool g_bShowHUD = false;
 
 int g_iFrame = 0, g_iTime, g_iTimeBase = 0;
-char g_acFPS[13], g_acArcOpacity[19], g_acSpeed[16];
+char g_acFPS[13], g_acArcOpacity[19], g_acSpeed[14];
 
 // core functions -> reduce to just the ones needed by glut as pointers to functions to fulfill tasks
 void display(); // The rendering function. This is called once for each frame and you should put rendering code here
@@ -263,13 +263,17 @@ void keyboard(unsigned char c, int iXPos, int iYPos) // detect key presses and a
 		controlToggle(g_Control, csg_uiControlDrawGrid); // toggle the drawing of the grid
 		break;
 	case 'r':
+		
 		toggleNodeSorting(springs);
 		break;
 	case 'n':
-		toggleNodeSorting(worldOrder);
+		toggleNodeSorting(worldSystem);
 		break;
 	case 'm':
 		toggleNodeSorting(continent);
+		break;
+	case 'o':
+		toggleNodeSorting(worldSystem1980);
 		break;
 	case 't':
 		visitNodes(&g_System, randomisePosition); // deliberate fallthrough to pause movement
@@ -363,6 +367,7 @@ void initMenu()
 	gs_uiSortingSubMenu = glutCreateMenu(processSortingMenuSelection);
 	glutAddMenuEntry("Position By Continent (m)", positionByContinent);
 	glutAddMenuEntry("Position By World System (n)", positionByWorldSystem);
+	glutAddMenuEntry("Position By 1980 World System (o)", positionByWorldSystem1980);
 	glutAddMenuEntry("Toggle Spring Solver (r)", positionBySpringSolver);
 
 	gs_uiMovementMenu = glutCreateMenu(processMovementMenuSelection);
@@ -406,10 +411,13 @@ void processSortingMenuSelection(int iMenuItem)
 		toggleNodeSorting(continent);
 		break;
 	case positionByWorldSystem:
-		toggleNodeSorting(worldOrder);
+		toggleNodeSorting(worldSystem);
 		break;
 	case positionBySpringSolver:
 		toggleNodeSorting(springs);
+		break;
+	case positionByWorldSystem1980:
+		toggleNodeSorting(worldSystem1980);
 		break;
 	}
 }
@@ -471,6 +479,7 @@ void myInit()
 	// Set up display strings for hud
 	sprintf(g_acArcOpacity, "Arc Thickness: %.1f", gs_fArcOpacity);
 	sprintf(g_acSpeed, "Speed Multiplier: %.3fx", increaseMovementSpeed());
+//	sprintf(g_acPositioning, "Positioning: %s", csg_acNoneDisplay);
 
 	// Camera setup
 	camInit(g_Camera); // initalise the camera model

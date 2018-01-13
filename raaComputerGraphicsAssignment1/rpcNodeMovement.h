@@ -7,7 +7,7 @@
 
 enum nodePositioning
 {
-	none, springs, worldOrder, continent
+	none, springs, worldSystem, continent, worldSystem1980
 };
 
 // Sort movement

@@ -20,8 +20,10 @@ const static float csg_fDampeningCoefficient = 0.99f;
 
 const static unsigned int csg_uiNumberOfContinents = 6;
 const static unsigned int csg_uiNumberOfWorldSystems = 3;
+const static unsigned int csg_uiNumberOf1980WorldSystems = 5;
 
 const static unsigned int csg_uiWorldOrdersCategory = 666;
+const static unsigned int csg_uiWorldOrders1980Category = 999;
 const static unsigned int csg_uiContinentsCategory = 333;
 
 const static float csg_fMinimumNodePosition = 1.0f;
@@ -67,6 +69,7 @@ const static unsigned int csg_uiParseGDP = 2;
 
 const static unsigned int csg_uiParseContinent = 1;
 const static unsigned int csg_uiParseWorldSystem = 2;
+const static unsigned int csg_uiParseWorldSystem1980 = 3;
 const static float csg_afParseLayoutScale[] = { 800.0f, 800.0f, 800.0f };
 const static float csg_fParseDefaultMass = 100.0f;
 const static float csg_fParseDefaultSize = 1.0f;
@@ -89,6 +92,7 @@ const enum menuOption
 {
 	positionByContinent,
 	positionByWorldSystem,
+	positionByWorldSystem1980,
 	positionBySpringSolver,
 
 	positionRandom,

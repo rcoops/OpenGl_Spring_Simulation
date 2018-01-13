@@ -1,12 +1,22 @@
-﻿  raaComputerGraphicsAssignment1.cpp
-c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(200): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+﻿  rpcSort.cpp
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raalinkedlist\rpcsort.cpp(133): warning C4018: '<': signed/unsigned mismatch
+  Generating Code...
+  Compiling...
+  rpcNodeMovement.cpp
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\rpcnodemovement.cpp(140): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+  raaParse.cpp
+  raaControl.cpp
+  raaConstants.cpp
+  raaComputerGraphicsAssignment1.cpp
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(199): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
-c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(241): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(240): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
-c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(247): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(246): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
-c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(473): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(480): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
-c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(474): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+c:\users\rcoop\onedrive\documents\visual studio 2015\projects\cg_assignment\raacomputergraphicsassignment1\raacomputergraphicsassignment1.cpp(481): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: see declaration of 'sprintf'
+  Generating Code...
   raaComputerGraphicsAssignment1.vcxproj -> C:\Users\rcoop\OneDrive\Documents\Visual Studio 2015\Projects\cg_assignment\raaComputerGraphicsAssignment1\Debug\CG-2017AssignmentD.exe

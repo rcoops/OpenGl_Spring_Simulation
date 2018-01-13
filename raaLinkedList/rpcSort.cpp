@@ -1,6 +1,7 @@
 #include "rpcSort.h"
 
-raaLinkedList g_pllNodeByWorldOrder[csg_uiNumberOfWorldSystems];
+raaLinkedList g_pllNodeByWorldSystem[csg_uiNumberOfWorldSystems];
+raaLinkedList g_pllNodeBy1980WorldSystem[csg_uiNumberOf1980WorldSystems];
 raaLinkedList g_pllNodeByContinent[csg_uiNumberOfContinents];
 
 /* no need for these functions to be available in other files */
@@ -13,6 +14,7 @@ raaLinkedListElement* merge(raaLinkedListElement *plleFront, raaLinkedListElemen
 
 void assignNodeToWorldOrderList(raaNode *pNode);
 void assignNodeToContinentList(raaNode *pNode);
+void assignNodeTo1980WorldSystemList(raaNode *pNode);
 void assignNodeToCategoryList(unsigned int uiCategory, raaLinkedList *pllSortedList, raaNode *pNode);
 void performCategorySort(raaLinkedList *pllOriginalNodeList, unsigned int uiNumberOfCategories, raaLinkedList *pllSortedList, nodeFunction *nfSort);
 
@@ -104,12 +106,17 @@ raaLinkedListElement* merge(raaLinkedListElement *plleFirst, raaLinkedListElemen
 
 void assignNodeToWorldOrderList(raaNode *pNode)
 {
-	assignNodeToCategoryList(pNode->m_uiWorldSystem, g_pllNodeByWorldOrder, pNode);
+	assignNodeToCategoryList(pNode->m_uiWorldSystem, g_pllNodeByWorldSystem, pNode);
 }
 
 void assignNodeToContinentList(raaNode *pNode)
 {
 	assignNodeToCategoryList(pNode->m_uiContinent, g_pllNodeByContinent, pNode);
+}
+
+void assignNodeTo1980WorldSystemList(raaNode *pNode)
+{
+	assignNodeToCategoryList(pNode->m_uiWorldSystem1980, g_pllNodeBy1980WorldSystem, pNode);
 }
 
 void assignNodeToCategoryList(unsigned int uiCategory, raaLinkedList *pllSortedList, raaNode *pNode)
@@ -132,7 +139,16 @@ void setNodePositionBySortedOrder(unsigned int uiNumberOfCategories, raaLinkedLi
 			raaNode *pNode = (raaNode*)pE->m_pData;
 			raaNode *pLast = pE->m_pLast ? ((raaNode*)pE->m_pLast->m_pData) : 0;
 			float fYPosition = pLast ? afPosition[1] + pLast->m_fTextOffset + 30.0f : 50.0f; // Use 'last' position to find y (if last exists)
-			afPosition = uiNumberOfCategories == 6 ? pNode->m_afContinentPosition : pNode->m_afWorldOrderPosition;
+			switch (uiNumberOfCategories) {
+			case csg_uiNumberOfWorldSystems:
+				afPosition = pNode->m_afWorldSystemPosition;
+				break;
+			case csg_uiNumberOf1980WorldSystems:
+				afPosition = pNode->m_afWorldSystem1980Position;
+				break;
+			case csg_uiNumberOfContinents:
+				afPosition = pNode->m_afContinentPosition;
+			}
 			afPosition[0] = fX;
 			afPosition[1] = fYPosition;
 			afPosition[2] = 300.0f;
@@ -161,7 +177,7 @@ void sortNodesByCategory(unsigned int uiCategory, raaLinkedList *pllOriginalNode
 	switch (uiCategory) // choose params based on category
 	{
 	case csg_uiWorldOrdersCategory:
-		pllSortedList = g_pllNodeByWorldOrder;
+		pllSortedList = g_pllNodeByWorldSystem;
 		uiNumberOfCategories = csg_uiNumberOfWorldSystems;
 		nfSort = assignNodeToWorldOrderList;
 		break;
@@ -169,6 +185,11 @@ void sortNodesByCategory(unsigned int uiCategory, raaLinkedList *pllOriginalNode
 		pllSortedList = g_pllNodeByContinent;
 		uiNumberOfCategories = csg_uiNumberOfContinents;
 		nfSort = assignNodeToContinentList;
+		break;
+	case csg_uiWorldOrders1980Category:
+		pllSortedList = g_pllNodeBy1980WorldSystem;
+		uiNumberOfCategories = csg_uiNumberOf1980WorldSystems;
+		nfSort = assignNodeTo1980WorldSystemList;
 		break;
 	}
 
@@ -182,4 +203,5 @@ void sortNodes(raaLinkedList *pllNodeList)
 {
 	sortNodesByCategory(csg_uiWorldOrdersCategory, pllNodeList);
 	sortNodesByCategory(csg_uiContinentsCategory, pllNodeList);
+	sortNodesByCategory(csg_uiWorldOrders1980Category, pllNodeList);
 }

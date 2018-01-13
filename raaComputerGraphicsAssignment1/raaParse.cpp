@@ -31,6 +31,7 @@ void parseSection(const char* acRaw, const char* acSection, const char* acDescri
 
 		if (!strcmp(acDescription, "Continent")) g_uiParseField = csg_uiParseContinent;
 		else if (!strcmp(acDescription, "World_system")) g_uiParseField = csg_uiParseWorldSystem;
+		else if (!strcmp(acDescription, "World_system_1980")) g_uiParseField = csg_uiParseWorldSystem1980;
 	}
 	else g_uiParseMode = 0;
 }
@@ -63,6 +64,11 @@ void parsePartition(const char* acRaw, const char* acValue)
 	{
 		raaNode *pNode = nodeById(&g_System, g_uiParseCount++);
 		if (pNode) pNode->m_uiWorldSystem = iValue;
+	}
+	else if (g_uiParseField == csg_uiParseWorldSystem1980)
+	{
+		raaNode *pNode = nodeById(&g_System, g_uiParseCount++);
+		if (pNode) pNode->m_uiWorldSystem1980 = iValue == 9999998 ? 5 : iValue;
 	}
 }
 
