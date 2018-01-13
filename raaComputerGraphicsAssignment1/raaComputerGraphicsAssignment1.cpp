@@ -479,7 +479,6 @@ void myInit()
 	// Set up display strings for hud
 	sprintf(g_acArcOpacity, "Arc Thickness: %.1f", gs_fArcOpacity);
 	sprintf(g_acSpeed, "Speed Multiplier: %.3fx", increaseMovementSpeed());
-//	sprintf(g_acPositioning, "Positioning: %s", csg_acNoneDisplay);
 
 	// Camera setup
 	camInit(g_Camera); // initalise the camera model
